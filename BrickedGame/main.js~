@@ -12,8 +12,10 @@
 
 	// Create a stats object for tracking FPS
 	var stats = new Stats();
+	var msStats = new Stats();
 	// Put the stats visual in the body.
 	document.body.appendChild(stats.domElement);
+	document.body.appendChild(msStats.domElement);
 	
 	var canvas = document.getElementById("c");
 	var ctx = canvas.getContext("2d");
