@@ -95,6 +95,10 @@
 		world.SetDebugDraw(debugDraw);
 	}; // init()
 
+	var FRAME_RATE = 1 / 60;
+    var VELOCITY_ITERATIONS = 10;
+    var POSITION_ITERATIONS = 10;
+
 	/*
 	 * ----------------------------------------------------
 	 * Does all the work we need to do at each tick of the
@@ -102,9 +106,6 @@
 	 * ----------------------------------------------------
 	 */
 	function update() {
-		var FRAME_RATE = 1 / 60;
-		var VELOCITY_ITERATIONS = 10;
-		var POSITION_ITERATIONS = 10;
 		world.Step(
 			FRAME_RATE,
 			VELOCITY_ITERATIONS,
