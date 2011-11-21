@@ -1,128 +1,92 @@
-	window.requestAnimFrame = (
-		function () {
-			return window.requestAnimationFrame ||
-				window.webkitRequestAnimationFrame ||
-				window.mozRequestAnimationFrame ||
-				window.oRequestAnimationFrame ||
-				window.msRequestAnimationFrame ||
-				function ( /* function */ callback, /* DOMElement */ element) {
-					window.setTimeout(callback, 1000 / 60);
-				};
-	})();
+(function() {
+  var FRAME_RATE, POSITION_ITERATIONS, SCALE, VELOCITY_ITERATIONS, canvas, ctx, init, stats, update, world;
 
-	// Create a stats object for tracking FPS
-	var stats = new Stats();
-	// Put the stats visual in the body.
-	document.body.appendChild(stats.domElement);
-	
-	var canvas = document.getElementById("c");
-	var ctx = canvas.getContext("2d");
+  window.requestAnimFrame = (function() {
+    return window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || window.oRequestAnimationFrame || window.msRequestAnimationFrame || function(callback, element) {
+      return window.setTimeout(callback, 1000 / 60);
+    };
+  })();
 
-	var world;
+  stats = new Stats();
 
-	// Constants
-	var SCALE = 30;
-		
-	/*
-	 * ----------------------------------------------------
-	 * Initalizes everything we need to get started, should
-	 * only be called once to set up.
-	 * ----------------------------------------------------
-	 */
-	function init() {
-		var b2Vec2 = Box2D.Common.Math.b2Vec2,
-			b2BodyDef = Box2D.Dynamics.b2BodyDef,
-			b2Body = Box2D.Dynamics.b2Body,
-			b2FixtureDef = Box2D.Dynamics.b2FixtureDef,
-			b2Fixture = Box2D.Dynamics.b2Fixture,
-			b2World = Box2D.Dynamics.b2World,
-			b2MassData = Box2D.Collision.Shapes.b2MassData,
-			b2PolygonShape = Box2D.Collision.Shapes.b2PolygonShape,
-			b2CircleShape = Box2D.Collision.Shapes.b2CircleShape,
-			b2DebugDraw = Box2D.Dynamics.b2DebugDraw;
+  document.body.appendChild(stats.domElement);
 
-		world = new b2World(
-			new b2Vec2(0, 10), //gravity
-			true //allow sleep
-		);
+  canvas = document.getElementById("c");
 
-		var fixDef = new b2FixtureDef;
-		fixDef.density = 1.0;
-		fixDef.friction = 1.5;
-		fixDef.restitution = 0.2;
+  ctx = canvas.getContext("2d");
 
-		var bodyDef = new b2BodyDef;
+  world = null;
 
-		//create ground
-		bodyDef.type = b2Body.b2_staticBody;
+  SCALE = 30;
 
-		// positions the center of the object (not upper left!)
-		bodyDef.position.x = canvas.width / 2 / SCALE;
-		bodyDef.position.y = canvas.height / SCALE;
+  init = function() {
+    var b2Body, b2BodyDef, b2CircleShape, b2DebugDraw, b2Fixture, b2FixtureDef, b2MassData, b2PolygonShape, b2Vec2, b2World, bodyDef, debugDraw, fixDef, i, _fn;
+    b2Vec2 = Box2D.Common.Math.b2Vec2;
+    b2BodyDef = Box2D.Dynamics.b2BodyDef;
+    b2Body = Box2D.Dynamics.b2Body;
+    b2FixtureDef = Box2D.Dynamics.b2FixtureDef;
+    b2Fixture = Box2D.Dynamics.b2Fixture;
+    b2World = Box2D.Dynamics.b2World;
+    b2MassData = Box2D.Collision.Shapes.b2MassData;
+    b2PolygonShape = Box2D.Collision.Shapes.b2PolygonShape;
+    b2CircleShape = Box2D.Collision.Shapes.b2CircleShape;
+    b2DebugDraw = Box2D.Dynamics.b2DebugDraw;
+    world = new b2World(new b2Vec2(0, 10), true);
+    fixDef = new b2FixtureDef;
+    fixDef.density = 1.0;
+    fixDef.friction = 1.5;
+    fixDef.restitution = 0.2;
+    bodyDef = new b2BodyDef;
+    bodyDef.type = b2Body.b2_staticBody;
+    bodyDef.position.x = canvas.width / 2 / SCALE;
+    bodyDef.position.y = canvas.height / SCALE;
+    fixDef.shape = new b2PolygonShape;
+    fixDef.shape.SetAsBox((600 / SCALE) / 2, (10 / SCALE) / 2);
+    world.CreateBody(bodyDef).CreateFixture(fixDef);
+    bodyDef.type = b2Body.b2_dynamicBody;
+    _fn = function() {
+      var halfHeight, halfWidth, radius;
+      if (Math.random() > 0.5) {
+        fixDef.shape = new b2PolygonShape;
+        halfHeight = Math.random() + 0.1;
+        halfWidth = Math.random() + 0.1;
+        return fixDef.shape.SetAsBox(halfHeight, halfWidth);
+      } else {
+        radius = Math.random() + 0.1;
+        return fixDef.shape = new b2CircleShape(radius);
+      }
+    };
+    for (i = 1; i <= 150; i++) {
+      _fn();
+      bodyDef.position.x = Math.random() * 25;
+      bodyDef.position.y = Math.random() * 10;
+      world.CreateBody(bodyDef).CreateFixture(fixDef);
+    }
+    debugDraw = new b2DebugDraw();
+    debugDraw.SetSprite(document.getElementById("c").getContext("2d"));
+    debugDraw.SetDrawScale(SCALE);
+    debugDraw.SetFillAlpha(0.3);
+    debugDraw.SetLineThickness(1.0);
+    debugDraw.SetFlags(b2DebugDraw.e_shapeBit | b2DebugDraw.e_jointBit);
+    return world.SetDebugDraw(debugDraw);
+  };
 
-		fixDef.shape = new b2PolygonShape;
+  FRAME_RATE = 1 / 60;
 
-		// half width, half height. eg actual height here is 1 unit
-		fixDef.shape.SetAsBox((600 / SCALE) / 2, (10 / SCALE) / 2);
-		world.CreateBody(bodyDef).CreateFixture(fixDef);
+  VELOCITY_ITERATIONS = 10;
 
-		//create some objects
-		bodyDef.type = b2Body.b2_dynamicBody;
-		for (var i = 0; i < 150; i++) {
-			// Randomize the shape created.
-			if (Math.random() > 0.5) {
-				fixDef.shape = new b2PolygonShape;
-				var halfHeight = Math.random() + 0.1;
-				var halfWidth = Math.random() + 0.1;
-				fixDef.shape.SetAsBox(halfHeight, halfWidth);
-			}
-			else {
-				var radius = Math.random() + 0.1;
-				fixDef.shape = new b2CircleShape(radius);
-			}
-			bodyDef.position.x = Math.random() * 25;
-			bodyDef.position.y = Math.random() * 10;
-			world.CreateBody(bodyDef).CreateFixture(fixDef);
-		}
+  POSITION_ITERATIONS = 10;
 
-		//setup debug draw
-		var debugDraw = new b2DebugDraw();
-		debugDraw.SetSprite(document.getElementById("c").getContext("2d"));
-		debugDraw.SetDrawScale(SCALE);
-		debugDraw.SetFillAlpha(0.3);
-		debugDraw.SetLineThickness(1.0);
-		debugDraw.SetFlags(b2DebugDraw.e_shapeBit | b2DebugDraw.e_jointBit);
-		world.SetDebugDraw(debugDraw);
-	}; // init()
+  update = function() {
+    world.Step(FRAME_RATE, VELOCITY_ITERATIONS, POSITION_ITERATIONS);
+    world.DrawDebugData();
+    world.ClearForces();
+    stats.update();
+    return requestAnimFrame(update);
+  };
 
-	var FRAME_RATE = 1 / 60;
-    var VELOCITY_ITERATIONS = 10;
-    var POSITION_ITERATIONS = 10;
+  init();
 
-	/*
-	 * ----------------------------------------------------
-	 * Does all the work we need to do at each tick of the
-	 * game clock.
-	 * ----------------------------------------------------
-	 */
-	function update() {
-		world.Step(
-			FRAME_RATE,
-			VELOCITY_ITERATIONS,
-			POSITION_ITERATIONS
-		);
-		world.DrawDebugData();
-		world.ClearForces();
+  requestAnimFrame(update);
 
-		// Update the stats for FPS info
-		stats.update();
-
-		// Kick off the next loop
-		requestAnimFrame(update);
-	}; // update()
-
-	// Set everything up.
-	init();
-	// Begin the animation loop.
-	requestAnimFrame(update);
-	
+}).call(this);

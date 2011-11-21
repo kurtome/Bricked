@@ -1,20 +1,22 @@
-	window.requestAnimFrame = ->
-        return window.requestAnimationFrame ||
-            window.webkitRequestAnimationFrame ||
-            window.mozRequestAnimationFrame ||
-            window.oRequestAnimationFrame ||
-            window.msRequestAnimationFrame ||
-            (callback, element) ->
-                window.setTimeout(callback, 1000 / 60)
+	window.requestAnimFrame = do -> 
+		return window.requestAnimationFrame ||
+			window.webkitRequestAnimationFrame ||
+			window.mozRequestAnimationFrame ||
+			window.oRequestAnimationFrame ||
+			window.msRequestAnimationFrame ||
+			(callback, element) -> 
+				window.setTimeout(callback, 1000 / 60)
+            
+    
             
 
 	# Create a stats object for tracking FPS
-	stats = new Stats();
+	stats = new Stats()
 	# Put the stats visual in the body.
-	document.body.appendChild(stats.domElement);
-	
-	canvas = document.getElementById("c");
-	ctx = canvas.getContext("2d");
+	document.body.appendChild(stats.domElement)
+
+	canvas = document.getElementById("c")
+	ctx = canvas.getContext("2d")
 
 	world = null
 
@@ -22,12 +24,12 @@
 	SCALE = 30;
 		
 	#-----------------------------------------------------
-    # Initalizes everything we need to get started, should
-    #  only be called once to set up.
-    #-----------------------------------------------------
+	# Initalizes everything we need to get started, should
+	#  only be called once to set up.
+	#-----------------------------------------------------
 	init = ->
 		b2Vec2 = Box2D.Common.Math.b2Vec2
-	    b2BodyDef = Box2D.Dynamics.b2BodyDef
+		b2BodyDef = Box2D.Dynamics.b2BodyDef
 		b2Body = Box2D.Dynamics.b2Body
 		b2FixtureDef = Box2D.Dynamics.b2FixtureDef
 		b2Fixture = Box2D.Dynamics.b2Fixture
@@ -64,24 +66,23 @@
 
 		# create some objects
 		bodyDef.type = b2Body.b2_dynamicBody;
-		for (i = 0; i < 150; i++) {
-			# Randomize the shape created.
-			if (Math.random() > 0.5) {
-				fixDef.shape = new b2PolygonShape;
-				halfHeight = Math.random() + 0.1;
-				halfWidth = Math.random() + 0.1;
-				fixDef.shape.SetAsBox(halfHeight, halfWidth);
-			}
-			else {
-				radius = Math.random() + 0.1;
-				fixDef.shape = new b2CircleShape(radius);
-			}
+		for i in [1..150]
+			do ->
+				# Randomize the shape created.
+				if (Math.random() > 0.5)
+					fixDef.shape = new b2PolygonShape;
+					halfHeight = Math.random() + 0.1;
+					halfWidth = Math.random() + 0.1;
+					fixDef.shape.SetAsBox(halfHeight, halfWidth);
+				else
+					radius = Math.random() + 0.1;
+					fixDef.shape = new b2CircleShape(radius);
+
 			bodyDef.position.x = Math.random() * 25;
 			bodyDef.position.y = Math.random() * 10;
 			world.CreateBody(bodyDef).CreateFixture(fixDef);
-		}
 
-	    # setup debug draw
+		# setup debug draw
 		debugDraw = new b2DebugDraw();
 		debugDraw.SetSprite(document.getElementById("c").getContext("2d"));
 		debugDraw.SetDrawScale(SCALE);
@@ -92,19 +93,15 @@
 	# init()
 
 	FRAME_RATE = 1 / 60;
-    VELOCITY_ITERATIONS = 10;
-    POSITION_ITERATIONS = 10;
+	VELOCITY_ITERATIONS = 10;
+	POSITION_ITERATIONS = 10;
 
-    # ----------------------------------------------------
+	# ----------------------------------------------------
 	# Does all the work we need to do at each tick of the
 	# game clock.
 	# ----------------------------------------------------
 	update = -> 
-		world.Step(
-			FRAME_RATE,
-			VELOCITY_ITERATIONS,
-			POSITION_ITERATIONS
-		);
+		world.Step( FRAME_RATE, VELOCITY_ITERATIONS, POSITION_ITERATIONS );
 		world.DrawDebugData();
 		world.ClearForces();
 
@@ -119,4 +116,4 @@
 	init();
 	# Begin the animation loop.
 	requestAnimFrame(update);
-	
+
