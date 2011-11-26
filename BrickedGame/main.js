@@ -1,25 +1,5 @@
 (function() {
-  var b2Body, b2BodyDef, b2CircleShape, b2DebugDraw, b2Fixture, b2FixtureDef, b2MassData, b2PolygonShape, b2Vec2, b2World, bricked;
-
-  b2Vec2 = Box2D.Common.Math.b2Vec2;
-
-  b2BodyDef = Box2D.Dynamics.b2BodyDef;
-
-  b2Body = Box2D.Dynamics.b2Body;
-
-  b2FixtureDef = Box2D.Dynamics.b2FixtureDef;
-
-  b2Fixture = Box2D.Dynamics.b2Fixture;
-
-  b2World = Box2D.Dynamics.b2World;
-
-  b2MassData = Box2D.Collision.Shapes.b2MassData;
-
-  b2PolygonShape = Box2D.Collision.Shapes.b2PolygonShape;
-
-  b2CircleShape = Box2D.Collision.Shapes.b2CircleShape;
-
-  b2DebugDraw = Box2D.Dynamics.b2DebugDraw;
+  var bricked;
 
   bricked = {};
 
@@ -39,19 +19,13 @@
 
   bricked.POSITION_ITERATIONS = 10;
 
-  bricked.GRAVITY = new b2Vec2(0, 0);
+  bricked.GRAVITY = new Box2D.Common.Math.b2Vec2(0, 0);
 
   bricked.WIDTH = bricked.canvas.width;
 
   bricked.HEIGHT = bricked.canvas.height;
 
   bricked.BALL_RADIUS = 10;
-
-  bricked.world = null;
-
-  bricked.ball = null;
-
-  bricked.paddle = null;
 
   window.requestAnimFrame = (function() {
     return window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || window.oRequestAnimationFrame || window.msRequestAnimationFrame || function(callback, element) {
@@ -73,7 +47,11 @@
   };
 
   bricked.createWalls = function() {
-    var bodyDef, bottomHeight, bottomWidth, fixDef, leftHeight, leftWidth, rightHeight, rightWidth, topHeight, topWidth;
+    var b2Body, b2BodyDef, b2FixtureDef, b2PolygonShape, bodyDef, bottomHeight, bottomWidth, fixDef, leftHeight, leftWidth, rightHeight, rightWidth, topHeight, topWidth;
+    b2BodyDef = Box2D.Dynamics.b2BodyDef;
+    b2Body = Box2D.Dynamics.b2Body;
+    b2FixtureDef = Box2D.Dynamics.b2FixtureDef;
+    b2PolygonShape = Box2D.Collision.Shapes.b2PolygonShape;
     fixDef = new b2FixtureDef;
     fixDef.density = 1.0;
     fixDef.friction = 0;
@@ -110,7 +88,11 @@
   };
 
   bricked.createBall = function() {
-    var ball, bodyDef, fixDef, radius;
+    var b2Body, b2BodyDef, b2CircleShape, b2FixtureDef, ball, bodyDef, fixDef, radius;
+    b2BodyDef = Box2D.Dynamics.b2BodyDef;
+    b2Body = Box2D.Dynamics.b2Body;
+    b2FixtureDef = Box2D.Dynamics.b2FixtureDef;
+    b2CircleShape = Box2D.Collision.Shapes.b2CircleShape;
     fixDef = new b2FixtureDef;
     fixDef.density = 1.0;
     fixDef.friction = 0;
@@ -128,7 +110,12 @@
   };
 
   bricked.createPaddle = function() {
-    var bodyDef, fixDef, paddle, paddleVertices, prisJointDef;
+    var b2Body, b2BodyDef, b2FixtureDef, b2PolygonShape, b2Vec2, bodyDef, fixDef, paddle, paddleVertices, prisJointDef;
+    b2Vec2 = Box2D.Common.Math.b2Vec2;
+    b2BodyDef = Box2D.Dynamics.b2BodyDef;
+    b2Body = Box2D.Dynamics.b2Body;
+    b2FixtureDef = Box2D.Dynamics.b2FixtureDef;
+    b2PolygonShape = Box2D.Collision.Shapes.b2PolygonShape;
     fixDef = new b2FixtureDef;
     fixDef.density = 1.0;
     fixDef.friction = 0;
@@ -148,13 +135,26 @@
     return paddle;
   };
 
+  bricked.beginContact = function(contact) {
+    var bodyA, bodyB;
+    bodyA = contact.GetFixtureA().GetBody();
+    bodyB = contact.GetFixtureB().GetBody();
+    if (bodyA === bricked.ball && bodyB === bricked.bottomWall || bodyA === bricked.bottomWall && bodyB === bricked.ball) {
+      return bricked.didBallDie = true;
+    }
+  };
+
   bricked.init = function() {
-    var allowSleep, debugDraw;
+    var allowSleep, b2DebugDraw, debugDraw, listener;
+    b2DebugDraw = Box2D.Dynamics.b2DebugDraw;
     allowSleep = true;
-    bricked.world = new b2World(bricked.GRAVITY, allowSleep);
+    bricked.world = new Box2D.Dynamics.b2World(bricked.GRAVITY, allowSleep);
     bricked.createWalls();
     bricked.ball = bricked.createBall();
     bricked.paddle = bricked.createPaddle();
+    listener = new Box2D.Dynamics.b2ContactListener;
+    listener.BeginContact = bricked.beginContact;
+    bricked.world.SetContactListener(listener);
     debugDraw = new b2DebugDraw();
     debugDraw.SetSprite(bricked.ctx);
     debugDraw.SetDrawScale(bricked.SCALE);
@@ -165,7 +165,8 @@
   };
 
   bricked.startBall = function() {
-    var initialForce, point, xForce, yForce;
+    var b2Vec2, initialForce, point, xForce, yForce;
+    b2Vec2 = Box2D.Common.Math.b2Vec2;
     xForce = Math.random() * 200 + 50;
     yForce = Math.random() * 200 + 50;
     if (Math.random() > 0.5) xForce *= -1;
@@ -179,6 +180,12 @@
     bricked.world.Step(bricked.FRAME_RATE, bricked.VELOCITY_ITERATIONS, bricked.POSITION_ITERATIONS);
     bricked.world.DrawDebugData();
     bricked.world.ClearForces();
+    if (bricked.didBallDie) {
+      bricked.didBallDie = false;
+      bricked.world.DestroyBody(bricked.ball);
+      bricked.ball = bricked.createBall();
+      bricked.startBall();
+    }
     bricked.stats.update();
     return requestAnimFrame(bricked.update);
   };

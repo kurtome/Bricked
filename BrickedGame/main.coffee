@@ -1,16 +1,4 @@
-
-	# Type definitions
-	b2Vec2 = Box2D.Common.Math.b2Vec2
-	b2BodyDef = Box2D.Dynamics.b2BodyDef
-	b2Body = Box2D.Dynamics.b2Body
-	b2FixtureDef = Box2D.Dynamics.b2FixtureDef
-	b2Fixture = Box2D.Dynamics.b2Fixture
-	b2World = Box2D.Dynamics.b2World
-	b2MassData = Box2D.Collision.Shapes.b2MassData
-	b2PolygonShape = Box2D.Collision.Shapes.b2PolygonShape
-	b2CircleShape = Box2D.Collision.Shapes.b2CircleShape
-	b2DebugDraw = Box2D.Dynamics.b2DebugDraw
-	
+	# global object to hold the data and methods for this game
 	bricked = { }
 
 	# Create a stats object for tracking FPS
@@ -27,14 +15,10 @@
 	bricked.FRAME_RATE = 1 / 60
 	bricked.VELOCITY_ITERATIONS = 10
 	bricked.POSITION_ITERATIONS = 10
-	bricked.GRAVITY = new b2Vec2(0, 0)
+	bricked.GRAVITY = new Box2D.Common.Math.b2Vec2(0, 0)
 	bricked.WIDTH = bricked.canvas.width
 	bricked.HEIGHT = bricked.canvas.height
 	bricked.BALL_RADIUS = 10
-
-	bricked.world = null
-	bricked.ball = null
-	bricked.paddle = null
 
 	#----------------------------------------------------
 	# Function that animates the 
@@ -68,11 +52,15 @@
 	#-----------------------------------------------------
 	bricked.scaleToScreen = (x) -> return (x * bricked.SCALE)
 
-	
 	#------------------------------------------------------
 	# Creates wall boundaries fo the game
 	# -----------------------------------------------------
 	bricked.createWalls = ->
+		b2BodyDef = Box2D.Dynamics.b2BodyDef
+		b2Body = Box2D.Dynamics.b2Body
+		b2FixtureDef = Box2D.Dynamics.b2FixtureDef
+		b2PolygonShape = Box2D.Collision.Shapes.b2PolygonShape
+
 		fixDef = new b2FixtureDef
 		fixDef.density = 1.0
 		fixDef.friction = 0
@@ -122,6 +110,11 @@
 	#	Returns: the ball
 	#------------------------------------------------------
 	bricked.createBall = ->
+		b2BodyDef = Box2D.Dynamics.b2BodyDef
+		b2Body = Box2D.Dynamics.b2Body
+		b2FixtureDef = Box2D.Dynamics.b2FixtureDef
+		b2CircleShape = Box2D.Collision.Shapes.b2CircleShape
+
 		fixDef = new b2FixtureDef
 		fixDef.density = 1.0
 		fixDef.friction = 0
@@ -145,6 +138,12 @@
 	#	Returns: The paddle
 	#---------------------------------------------------
 	bricked.createPaddle = ->
+		b2Vec2 = Box2D.Common.Math.b2Vec2
+		b2BodyDef = Box2D.Dynamics.b2BodyDef
+		b2Body = Box2D.Dynamics.b2Body
+		b2FixtureDef = Box2D.Dynamics.b2FixtureDef
+		b2PolygonShape = Box2D.Collision.Shapes.b2PolygonShape
+
 		fixDef = new b2FixtureDef
 		fixDef.density = 1.0
 		fixDef.friction = 0
@@ -174,17 +173,37 @@
 		return paddle
 
 	#------------------------------------------------------
+	# Handles the BeginContact event from the physics 
+	# world.
+	#------------------------------------------------------
+	bricked.beginContact = (contact) ->
+		bodyA = contact.GetFixtureA().GetBody()
+		bodyB = contact.GetFixtureB().GetBody()
+
+		# See if the ball hit the bottom wall, and thus is dead
+		if (bodyA == bricked.ball and bodyB == bricked.bottomWall or
+		bodyA == bricked.bottomWall and bodyB == bricked.ball)
+			bricked.didBallDie = true
+
+	#------------------------------------------------------
 	# Initalizes everything we need to get started, should
 	# only be called once to set up.
 	#------------------------------------------------------
 	bricked.init = ->
+		b2DebugDraw = Box2D.Dynamics.b2DebugDraw
+
 		allowSleep = true
-		bricked.world = new b2World(bricked.GRAVITY, allowSleep)
+		bricked.world = new Box2D.Dynamics.b2World(bricked.GRAVITY, allowSleep)
 
 		bricked.createWalls()
 
 		bricked.ball = bricked.createBall()
 		bricked.paddle = bricked.createPaddle()
+
+		# Contact listener for collision detection
+		listener = new Box2D.Dynamics.b2ContactListener
+		listener.BeginContact = bricked.beginContact
+		bricked.world.SetContactListener(listener)
 
 		# setup debug draw
 		debugDraw = new b2DebugDraw()
@@ -200,6 +219,8 @@
 	# Gives the ball its initial push
 	# ---------------------------------------------------
 	bricked.startBall = ->
+		b2Vec2 = Box2D.Common.Math.b2Vec2
+
 		# Randomize magnitude and direction of forces
 		# between 50 - 250
 		xForce = Math.random() * 200 + 50
@@ -220,6 +241,12 @@
 		bricked.world.Step( bricked.FRAME_RATE, bricked.VELOCITY_ITERATIONS, bricked.POSITION_ITERATIONS )
 		bricked.world.DrawDebugData()
 		bricked.world.ClearForces()
+
+		if (bricked.didBallDie)
+			bricked.didBallDie = false
+			bricked.world.DestroyBody(bricked.ball)
+			bricked.ball = bricked.createBall()
+			bricked.startBall()
 
 		# Update the stats for FPS info
 		bricked.stats.update()
