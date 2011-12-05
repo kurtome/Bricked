@@ -151,9 +151,15 @@
 		fixDef.shape = new b2PolygonShape
 		paddleVertices = [
 			bricked.scaleVecToPhys(new b2Vec2(0, 0)), 
-			bricked.scaleVecToPhys(new b2Vec2(20, -10)), 
-			bricked.scaleVecToPhys(new b2Vec2(60, -10)), 
-			bricked.scaleVecToPhys(new b2Vec2(80, 0))
+
+			bricked.scaleVecToPhys(new b2Vec2(-40, 0)), 
+			bricked.scaleVecToPhys(new b2Vec2(-35, -4)), 
+			bricked.scaleVecToPhys(new b2Vec2(-20, -8)), 
+			bricked.scaleVecToPhys(new b2Vec2(-10, -10)), 
+			bricked.scaleVecToPhys(new b2Vec2(10, -10)), 
+			bricked.scaleVecToPhys(new b2Vec2(20, -8)), 
+			bricked.scaleVecToPhys(new b2Vec2(35, -4)), 
+			bricked.scaleVecToPhys(new b2Vec2(40, 0))
 		]
 		fixDef.shape.SetAsArray(paddleVertices, paddleVertices.Length)
 
@@ -221,17 +227,17 @@
 	bricked.startBall = ->
 		b2Vec2 = Box2D.Common.Math.b2Vec2
 
-		# Randomize magnitude and direction of forces
-		# between 50 - 250
+		# Randomize magnitude of forces between 50 - 250
 		xForce = Math.random() * 200 + 50
 		yForce = Math.random() * 200 + 50
+		# Randomize direction of forces
 		if Math.random() > 0.5 then xForce *= -1
 		if Math.random() > 0.5 then yForce *= -1
 		initialForce = new b2Vec2(xForce, yForce)
 
-		point = bricked.ball.GetPosition()
-		# Apply the force
-		bricked.ball.ApplyForce(initialForce, point)
+		# Apply the force to the center of the ball
+		centerPoint = bricked.ball.GetPosition()
+		bricked.ball.ApplyForce(initialForce, centerPoint)
 
 	# ----------------------------------------------------
 	# Does all the work we need to do at each tick of the

@@ -121,7 +121,7 @@
     fixDef.friction = 0;
     fixDef.restitution = 1;
     fixDef.shape = new b2PolygonShape;
-    paddleVertices = [bricked.scaleVecToPhys(new b2Vec2(0, 0)), bricked.scaleVecToPhys(new b2Vec2(20, -10)), bricked.scaleVecToPhys(new b2Vec2(60, -10)), bricked.scaleVecToPhys(new b2Vec2(80, 0))];
+    paddleVertices = [bricked.scaleVecToPhys(new b2Vec2(0, 0)), bricked.scaleVecToPhys(new b2Vec2(-40, 0)), bricked.scaleVecToPhys(new b2Vec2(-35, -4)), bricked.scaleVecToPhys(new b2Vec2(-20, -8)), bricked.scaleVecToPhys(new b2Vec2(-10, -10)), bricked.scaleVecToPhys(new b2Vec2(10, -10)), bricked.scaleVecToPhys(new b2Vec2(20, -8)), bricked.scaleVecToPhys(new b2Vec2(35, -4)), bricked.scaleVecToPhys(new b2Vec2(40, 0))];
     fixDef.shape.SetAsArray(paddleVertices, paddleVertices.Length);
     bodyDef = new b2BodyDef;
     bodyDef.type = b2Body.b2_dynamicBody;
@@ -165,15 +165,15 @@
   };
 
   bricked.startBall = function() {
-    var b2Vec2, initialForce, point, xForce, yForce;
+    var b2Vec2, centerPoint, initialForce, xForce, yForce;
     b2Vec2 = Box2D.Common.Math.b2Vec2;
     xForce = Math.random() * 200 + 50;
     yForce = Math.random() * 200 + 50;
     if (Math.random() > 0.5) xForce *= -1;
     if (Math.random() > 0.5) yForce *= -1;
     initialForce = new b2Vec2(xForce, yForce);
-    point = bricked.ball.GetPosition();
-    return bricked.ball.ApplyForce(initialForce, point);
+    centerPoint = bricked.ball.GetPosition();
+    return bricked.ball.ApplyForce(initialForce, centerPoint);
   };
 
   bricked.update = function() {
