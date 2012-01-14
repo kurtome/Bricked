@@ -6,5 +6,5 @@ Created by: Kurtis Melby
 
 Other projects used:
 
-* 'box2dJ' http://box2d-js.sourceforge.net/
-* 'brain' http://harthur.github.com/brain/
+* `box2dJ` http://box2d-js.sourceforge.net/
+* `brain` http://harthur.github.com/brain/
