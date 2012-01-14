@@ -5,5 +5,6 @@ Hosted on GitHub under username KurToMe.
 Created by: Kurtis Melby
 
 Other projects used:
-	Box2dJ http://box2d-js.sourceforge.net/
-*   SjoerdL/brainJS
+
+* 'box2dJ' http://box2d-js.sourceforge.net/
+* 'brain' http://harthur.github.com/brain/
