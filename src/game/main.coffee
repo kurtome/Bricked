@@ -194,6 +194,46 @@
 		bodyA == bricked.bottomWall and bodyB == bricked.ball)
 			bricked.didBallDie = true
 
+	#-----------------------------------------------------
+	# Creates the neural network for learning.
+	#-----------------------------------------------------
+	bricked.createNn = ->
+		options = {
+			hidden: [16],
+			growthRate: 1.0,
+			learningRate: 0.8
+		}
+		net = new brain.NeuralNetwork(options)
+		return net
+
+	#-----------------------------------------------------
+	# Creates the AI for the paddle
+	#-----------------------------------------------------
+	class PaddleAi
+		constructor: (@paddle, @learner) ->
+
+		applyXForce: (xForce) ->
+			b2Vec2 = Box2D.Common.Math.b2Vec2
+			centerPoint = @paddle.GetPosition()
+			force = new b2Vec2(xForce, 0)
+			@paddle.ApplyForce(force, centerPoint)
+
+		moveLeft: ->
+			this.applyXForce -5
+
+		moveRight: ->
+			this.applyXForce 5
+
+		update: ->
+			rand = Math.random()
+			if rand < 0.33
+				this.moveLeft()
+			else if rand < 0.67
+				this.moveRight()
+			else
+				# Do Nothing
+
+
 	#------------------------------------------------------
 	# Initalizes everything we need to get started, should
 	# only be called once to set up.
@@ -209,6 +249,9 @@
 		bricked.ball = bricked.createBall()
 		bricked.paddle = bricked.createPaddle()
 
+		neuralNet = bricked.createNn()
+		bricked.paddleAi = new PaddleAi(bricked.paddle, neuralNet)
+
 		# Contact listener for collision detection
 		listener = new Box2D.Dynamics.b2ContactListener
 		listener.BeginContact = bricked.beginContact
@@ -222,7 +265,7 @@
 		debugDraw.SetLineThickness(1.0)
 		debugDraw.SetFlags(b2DebugDraw.e_shapeBit | b2DebugDraw.e_jointBit)
 		bricked.world.SetDebugDraw(debugDraw)
-	# init() ----
+	# ~init() 
 
 	# ---------------------------------------------------
 	# Gives the ball its initial push
@@ -256,6 +299,9 @@
 			bricked.world.DestroyBody(bricked.ball)
 			bricked.ball = bricked.createBall()
 			bricked.startBall()
+
+		# Update paddle
+		bricked.paddleAi.update()
 
 		# Update the stats for FPS info
 		bricked.stats.update()

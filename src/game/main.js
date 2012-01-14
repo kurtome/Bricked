@@ -1,5 +1,5 @@
 (function() {
-  var bricked;
+  var PaddleAi, bricked;
 
   bricked = {};
 
@@ -145,14 +145,66 @@
     }
   };
 
+  bricked.createNn = function() {
+    var net, options;
+    options = {
+      hidden: [16],
+      growthRate: 1.0,
+      learningRate: 0.8
+    };
+    net = new brain.NeuralNetwork(options);
+    return net;
+  };
+
+  PaddleAi = (function() {
+
+    function PaddleAi(paddle, learner) {
+      this.paddle = paddle;
+      this.learner = learner;
+    }
+
+    PaddleAi.prototype.applyXForce = function(xForce) {
+      var b2Vec2, centerPoint, force;
+      b2Vec2 = Box2D.Common.Math.b2Vec2;
+      centerPoint = this.paddle.GetPosition();
+      force = new b2Vec2(xForce, 0);
+      return this.paddle.ApplyForce(force, centerPoint);
+    };
+
+    PaddleAi.prototype.moveLeft = function() {
+      return this.applyXForce(-5);
+    };
+
+    PaddleAi.prototype.moveRight = function() {
+      return this.applyXForce(5);
+    };
+
+    PaddleAi.prototype.update = function() {
+      var rand;
+      rand = Math.random();
+      if (rand < 0.33) {
+        return this.moveLeft();
+      } else if (rand < 0.67) {
+        return this.moveRight();
+      } else {
+
+      }
+    };
+
+    return PaddleAi;
+
+  })();
+
   bricked.init = function() {
-    var allowSleep, b2DebugDraw, debugDraw, listener;
+    var allowSleep, b2DebugDraw, debugDraw, listener, neuralNet;
     b2DebugDraw = Box2D.Dynamics.b2DebugDraw;
     allowSleep = true;
     bricked.world = new Box2D.Dynamics.b2World(bricked.GRAVITY, allowSleep);
     bricked.createWalls();
     bricked.ball = bricked.createBall();
     bricked.paddle = bricked.createPaddle();
+    neuralNet = bricked.createNn();
+    bricked.paddleAi = new PaddleAi(bricked.paddle, neuralNet);
     listener = new Box2D.Dynamics.b2ContactListener;
     listener.BeginContact = bricked.beginContact;
     bricked.world.SetContactListener(listener);
@@ -187,6 +239,7 @@
       bricked.ball = bricked.createBall();
       bricked.startBall();
     }
+    bricked.paddleAi.update();
     bricked.stats.update();
     return requestAnimFrame(bricked.update);
   };
