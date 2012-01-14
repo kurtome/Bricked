@@ -167,6 +167,9 @@
 		bodyDef.type = b2Body.b2_dynamicBody
 		bodyDef.position.x = bricked.scaleToPhys(bricked.WIDTH / 2)
 		bodyDef.position.y = bricked.scaleToPhys(bricked.HEIGHT - 20)
+		# Apply a linear dampening so that it will stop unless force is 
+		# continually supplied
+		bodyDef.linearDamping = 2.0
 
 		paddle = bricked.world.CreateBody(bodyDef)
 		paddle.CreateFixture(fixDef)
@@ -219,7 +222,7 @@
 		debugDraw.SetLineThickness(1.0)
 		debugDraw.SetFlags(b2DebugDraw.e_shapeBit | b2DebugDraw.e_jointBit)
 		bricked.world.SetDebugDraw(debugDraw)
-	# init()
+	# init() ----
 
 	# ---------------------------------------------------
 	# Gives the ball its initial push
