@@ -224,12 +224,18 @@
 		moveRight: ->
 			this.applyXForce 5
 
+		updateGoalX: ->
+			# Let's cheat for now and try follow the ball's position
+			@goalX = bricked.ball.GetPosition().x
+
 		update: ->
-			rand = Math.random()
-			if rand < 0.33
-				this.moveLeft()
-			else if rand < 0.67
+			this.updateGoalX();
+
+			currentX = @paddle.GetPosition().x
+			if currentX < @goalX
 				this.moveRight()
+			else if currentX > @goalX
+				this.moveLeft()
 			else
 				# Do Nothing
 

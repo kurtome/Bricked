@@ -179,13 +179,18 @@
       return this.applyXForce(5);
     };
 
+    PaddleAi.prototype.updateGoalX = function() {
+      return this.goalX = bricked.ball.GetPosition().x;
+    };
+
     PaddleAi.prototype.update = function() {
-      var rand;
-      rand = Math.random();
-      if (rand < 0.33) {
-        return this.moveLeft();
-      } else if (rand < 0.67) {
+      var currentX;
+      this.updateGoalX();
+      currentX = this.paddle.GetPosition().x;
+      if (currentX < this.goalX) {
         return this.moveRight();
+      } else if (currentX > this.goalX) {
+        return this.moveLeft();
       } else {
 
       }
