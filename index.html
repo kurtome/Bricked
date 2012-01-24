@@ -15,7 +15,12 @@
     #container {
       margin: 0 auto;
       width: 700px;
-    }
+	  }
+	  #game-container {
+		background-color: #ffffff;
+		height: 600px;
+		width: 600px;
+	  }
     h1 { font-size: 3.8em; color: #6b432e; margin-bottom: 3px; }
     h1 .small { font-size: 0.4em; }
     h1 a { text-decoration: none }
@@ -28,12 +33,31 @@
     hr { border: 0; width: 80%; border-bottom: 1px solid #aaa}
     .footer { text-align:center; padding-top:30px; font-style: italic; }
   </style>
+
+	<script src="./lib/Box2dWeb-2.1a.3/Box2dWeb-2.1.a.3.min.js" ></script>
+	<script src="./lib/stats/Stats.js" ></script>
+	<script src="./lib/brain/brain-0.3.5.js" ></script>
 </head>
 
 <body>
   <a href="https://github.com/KurToMe/Bricked"><img style="position: absolute; top: 0; right: 0; border: 0;" src="http://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub" /></a>
 
+    <h1><a href="https://github.com/KurToMe/Bricked">Bricked</a>
+      <span class="small">by <a href="https://github.com/KurToMe">KurToMe</a></span></h1>
   <div id="container">
+
+	  <div id="game-container">
+		  <canvas id="c" width=600 height=600 style="border: 1px solid black"></canvas>
+	  </div>
+		
+		<!-- JS that does all the work for the game. -->
+		<script type="text/javascript" src="./src/js/bricked.min.js"></script>
+
+    <div class="description">
+		This is a work in progress proof-of-concept "game" which will attempt to have a simple AI agent learn and become proficient in game from scratch. 
+
+		Note: the current iteration is cheating, it is not learning, just pre-programmed to naively follow the horizontal position of the ball.
+    </div>
 
     <div class="download">
       <a href="https://github.com/KurToMe/Bricked/zipball/master">
@@ -41,21 +65,6 @@
       <a href="https://github.com/KurToMe/Bricked/tarball/master">
         <img border="0" width="90" src="https://github.com/images/modules/download/tar.png"></a>
     </div>
-
-    <h1><a href="https://github.com/KurToMe/Bricked">Bricked</a>
-      <span class="small">by <a href="https://github.com/KurToMe">KurToMe</a></span></h1>
-
-    <div class="description">
-      This is a work in progress proof-of-concept "game" which will attempt to have a simple AI agent learn and become proficient in game from scratch.
-    </div>
-
-    
-
-    
-
-    
-
-    
 
     
       <h2>Authors</h2>
