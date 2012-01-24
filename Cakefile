@@ -1,3 +1,5 @@
+# Cakefile modified from source thanks to 'krismolendyke' on github.
+
 fs     = require 'fs'
 {exec} = require 'child_process'
 util   = require 'util'
