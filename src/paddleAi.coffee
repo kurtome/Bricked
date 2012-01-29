@@ -1,8 +1,16 @@
-#-----------------------------------------------------
-# Creates the AI for the paddle
-#-----------------------------------------------------
-class PaddleAi
+###
+ Creates the AI for the paddle
+###
+bricked.PaddleAi = class PaddleAi
 	constructor: (@paddle, @learner) ->
+		@trainingWorker = new Worker bricked.paths.TRAINER_WORKER
+		@trainingWorker.onmessage = this.onTrainerWorkerMessage
+
+		@predictWorld = ->
+			return null
+
+	onTrainerWorkerMessage: (event) ->
+		@predictWorld = event.data
 
 	applyXForce: (xForce) ->
 		b2Vec2 = Box2D.Common.Math.b2Vec2
