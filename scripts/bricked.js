@@ -1,3 +1,8 @@
+
+/*
+ Creates the AI for the paddle
+*/
+
 var PaddleAi, bricked;
 
 bricked.PaddleAi = PaddleAi = (function() {
@@ -83,24 +88,47 @@ bricked.paths = {};
 
 bricked.paths.TRAINER_WORKER = 'trainerWorker.min.js';
 
+/*
+ Function that animates the
+*/
+
 window.requestAnimFrame = (function() {
   return window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || window.oRequestAnimationFrame || window.msRequestAnimationFrame || function(callback, element) {
     return window.setTimeout(callback, 1000 / 60);
   };
 })();
 
+/*
+ Converts screen points (pixels) to points the 
+ physics engine works with
+*/
+
 bricked.scaleToPhys = function(x) {
   return x / bricked.SCALE;
 };
+
+/*
+ Converts screen points (pixels) vector to points 
+ the physics engine works with
+*/
 
 bricked.scaleVecToPhys = function(vec) {
   vec.Multiply(1 / bricked.SCALE);
   return vec;
 };
 
+/*
+ Converts physics points to points the screen points
+ (pixels)
+*/
+
 bricked.scaleToScreen = function(x) {
   return x * bricked.SCALE;
 };
+
+/*
+ Creates wall boundaries fo the game
+*/
 
 bricked.createWalls = function() {
   var b2Body, b2BodyDef, b2FixtureDef, b2PolygonShape, bodyDef, bottomHeight, bottomWidth, fixDef, leftHeight, leftWidth, rightHeight, rightWidth, topHeight, topWidth;
@@ -143,6 +171,11 @@ bricked.createWalls = function() {
   return bricked.bottomWall.CreateFixture(fixDef);
 };
 
+/*
+ Creates a ball
+	Returns: the ball
+*/
+
 bricked.createBall = function() {
   var b2Body, b2BodyDef, b2CircleShape, b2FixtureDef, ball, bodyDef, fixDef, radius;
   b2BodyDef = Box2D.Dynamics.b2BodyDef;
@@ -164,6 +197,11 @@ bricked.createBall = function() {
   ball.SetBullet(true);
   return ball;
 };
+
+/*
+ Creates a paddle in the bricked.world
+	Returns: The paddle
+*/
 
 bricked.createPaddle = function() {
   var b2Body, b2BodyDef, b2FixtureDef, b2PolygonShape, b2Vec2, bodyDef, fixDef, paddle, paddleVertices, prisJointDef;
@@ -192,6 +230,11 @@ bricked.createPaddle = function() {
   return paddle;
 };
 
+/*
+ Handles the BeginContact event from the physics 
+ world.
+*/
+
 bricked.beginContact = function(contact) {
   var bodyA, bodyB;
   bodyA = contact.GetFixtureA().GetBody();
@@ -200,6 +243,10 @@ bricked.beginContact = function(contact) {
     return bricked.didBallDie = true;
   }
 };
+
+/*
+ Creates the neural network for learning.
+*/
 
 bricked.createNn = function() {
   var net, options;
@@ -211,6 +258,11 @@ bricked.createNn = function() {
   net = new brain.NeuralNetwork(options);
   return net;
 };
+
+/*
+ Initalizes everything we need to get started, should
+ only be called once to set up.
+*/
 
 bricked.init = function() {
   var allowSleep, b2DebugDraw, debugDraw, listener, neuralNet;
@@ -234,6 +286,10 @@ bricked.init = function() {
   return bricked.world.SetDebugDraw(debugDraw);
 };
 
+/*
+ Gives the ball its initial push
+*/
+
 bricked.startBall = function() {
   var b2Vec2, centerPoint, initialForce, xForce, yForce;
   b2Vec2 = Box2D.Common.Math.b2Vec2;
@@ -245,6 +301,11 @@ bricked.startBall = function() {
   centerPoint = bricked.ball.GetPosition();
   return bricked.ball.ApplyForce(initialForce, centerPoint);
 };
+
+/*
+ Does all the work we need to do at each tick of the
+ game clock.
+*/
 
 bricked.update = function() {
   bricked.world.Step(bricked.FRAME_RATE, bricked.VELOCITY_ITERATIONS, bricked.POSITION_ITERATIONS);

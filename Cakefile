@@ -21,18 +21,36 @@ testCoffeeOpts = "--output #{testTargetJsDir}"
 
 inOutPairs = [
 	['bricked', ['paddleAi', 'main']]
-	['trainerWorker', ['trainerWorkerMain']]
+	['trainerWorker', ['trainerWorker']]
 ]
-prodCoffeeFiles = []
+#prodCoffeeFiles = []
+#
 
+###
+# Clean
+###
+task 'clean', 'Removes all .js and .coffee files from output dir', ->
+	exec "rm #{prodTargetJsDir}/*.js"
+	exec "rm #{prodTargetJsDir}/*.coffee"
+	util.log ".js and .coffee files removed from #{prodTargetJsDir}"
+
+###
+# Watch src and tests
+###
 task 'watch:all', 'Watch production and test CoffeeScript', ->
 	invoke 'watch:test'
 	invoke 'watch'
 	
+###
+# Build tests and src
+###
 task 'build:all', 'Build production and test CoffeeScript', ->
 	invoke 'build:test'
 	invoke 'build'
 
+###
+# Watch src
+###
 task 'watch', 'Watch prod source files and build changes', ->
 	invoke 'build'
 	util.log "Watching for changes in #{prodSrcCoffeeDir}"
@@ -47,11 +65,14 @@ task 'watch', 'Watch prod source files and build changes', ->
 					util.log "Saw change in #{prodSrcCoffeeDir}/#{file}.coffee"
 					invoke 'build'
 
+###
+# Build src
+###
 task 'build', 'Build a single JavaScript file from prod files', ->
-	for pair in inOutPairs 
+	for pair in inOutPairs then do (pair) ->
 		prodTargetFileName = pair[0]
 		prodCoffeeFiles = pair[1]
-		prodTargetCoffeeFile = "#{prodSrcCoffeeDir}/#{prodTargetFileName}.coffee"
+		prodTargetCoffeeFile = "#{prodTargetJsDir}/#{prodTargetFileName}.coffee"
 		prodTargetJsFile = "#{prodTargetJsDir}/#{prodTargetFileName}.js"
 
 		util.log "Building #{prodTargetJsFile}"
@@ -66,25 +87,32 @@ task 'build', 'Build a single JavaScript file from prod files', ->
 				
 				appContents[index] = fileContents
 				util.log "[#{index + 1}] #{file}.coffee"
-				process(prodTargetCoffeeFile, prodTargetJsFile) if --remaining is 0
+				if --remaining is 0
+					process(prodTargetCoffeeFile, prodTargetJsFile, appContents, prodTargetFileName) 
 
-	process = (prodTargetCoffeeFile, prodTargetJsFile) ->
-		util.log "Processing to #{prodTargetJsFile} from #{prodTargetCoffeeFile}"
-		fs.writeFile prodTargetCoffeeFile
-				, appContents.join('\n\n')
-				, 'utf8'
-				, (err) ->
+###
+# Compile coffee file into js
+###
+process = (prodTargetCoffeeFile, prodTargetJsFile, appContents, prodTargetFileName) ->
+	util.log "Processing to #{prodTargetJsFile} from #{prodTargetCoffeeFile}"
+	fs.writeFile prodTargetCoffeeFile
+			, appContents.join('\n\n')
+			, 'utf8'
+			, (err) ->
+		handleError(err) if err
+		
+		prodCoffeeOpts = "--bare --output #{prodTargetJsDir} --compile #{prodTargetCoffeeFile}"
+		exec "coffee #{prodCoffeeOpts}", (err, stdout, stderr) ->
 			handleError(err) if err
-			
-			prodCoffeeOpts = "--bare --output #{prodTargetJsDir} --compile #{prodTargetCoffeeFile}"
-			exec "coffee #{prodCoffeeOpts}", (err, stdout, stderr) ->
-				handleError(err) if err
-				message = "Compiled #{prodTargetJsFile}"
-				util.log message
-				displayNotification message
-				fs.unlink prodTargetCoffeeFile, (err) -> handleError(err) if err
-				invoke 'uglify'
+			message = "Compiled #{prodTargetJsFile}"
+			util.log message
+			displayNotification message
+			fs.unlink prodTargetCoffeeFile, (err) -> handleError(err) if err
+			uglifyJs prodTargetFileName
 
+###
+# Watch test files
+###
 task 'watch:test', 'Watch test specs and build changes', ->
 	invoke 'build:test'
 	util.log "Watching for changes in #{testSrcCoffeeDir}"
@@ -96,6 +124,9 @@ task 'watch:test', 'Watch test specs and build changes', ->
 				if +curr.mtime isnt +prev.mtime
 					coffee testCoffeeOpts, "#{testSrcCoffeeDir}/#{file}"
 
+###
+# Build tests
+###
 task 'build:test', 'Build individual test specs', ->
 	util.log 'Building test specs'
 	fs.readdir testSrcCoffeeDir, (err, files) ->
@@ -103,28 +134,32 @@ task 'build:test', 'Build individual test specs', ->
 		for file in files then do (file) -> 
 			coffee testCoffeeOpts, "#{testSrcCoffeeDir}/#{file}"
 
-task 'uglify', 'Minify and obfuscate', ->
-	jsp = uglify.parser
-	pro = uglify.uglify
+###
+# Uglify
+###
+uglifyJs = (prodTargetFileName) ->
+	prodTargetJsFile = "#{prodTargetJsDir}/#{prodTargetFileName}.js"
+	prodTargetJsMinFile  = "#{prodTargetJsDir}/#{prodTargetFileName}.min.js"
+	util.log "Uglifying #{prodTargetJsFile} to #{prodTargetJsMinFile}"
 
-	for pair in inOutPairs 
-		prodTargetFileName = pair[0]
-		prodCoffeeFiles = pair[1]
-		prodTargetJsFile = "#{prodTargetJsDir}/#{prodTargetFileName}.js"
-		prodTargetJsMinFile  = "#{prodTargetJsDir}/#{prodTargetFileName}.min.js"
+	fs.readFile prodTargetJsFile, 'utf8', (err, fileContents) ->
+		jsp = uglify.parser
+		pro = uglify.uglify
+		util.log "Read error (if exists) = #{err}"
+		ast = jsp.parse fileContents  # parse code and get the initial AST
+		ast = pro.ast_mangle ast # get a new AST with mangled names
+		ast = pro.ast_squeeze ast # get an AST with compression optimizations
+		final_code = pro.gen_code ast # compressed code here
+	
+		fs.writeFile prodTargetJsMinFile, final_code
 
-		fs.readFile prodTargetJsFile, 'utf8', (err, fileContents) ->
-			ast = jsp.parse fileContents  # parse code and get the initial AST
-			ast = pro.ast_mangle ast # get a new AST with mangled names
-			ast = pro.ast_squeeze ast # get an AST with compression optimizations
-			final_code = pro.gen_code ast # compressed code here
+		# Commented out in order to leave non-minified js file,
+		# don't want to delete it.
+		#fs.unlink prodTargetJsFile, (err) -> handleError(err) if err
 		
-			fs.writeFile prodTargetJsMinFile, final_code
-			#fs.unlink prodTargetJsFile, (err) -> handleError(err) if err
-			
-			message = "Uglified #{prodTargetJsMinFile}"
-			util.log message
-			displayNotification message
+		message = "Uglified #{prodTargetJsMinFile}"
+		util.log message
+		displayNotification message
 	
 coffee = (options = "", file) ->
 	util.log "Compiling #{file}"
