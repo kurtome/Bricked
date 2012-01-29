@@ -21,7 +21,7 @@ testCoffeeOpts = "--output #{testTargetJsDir}"
 
 inOutPairs = [
 	['bricked', ['paddleAi', 'main']]
-	['trainerWorker', ['trainerWorker']]
+	['trainerWorker', ['trainerWorkerMain']]
 ]
 prodCoffeeFiles = []
 
@@ -68,21 +68,22 @@ task 'build', 'Build a single JavaScript file from prod files', ->
 				util.log "[#{index + 1}] #{file}.coffee"
 				process(prodTargetCoffeeFile, prodTargetJsFile) if --remaining is 0
 
-		process = (prodTargetCoffeeFile, prodTargetJsFile) ->
-			fs.writeFile prodTargetCoffeeFile
-					, appContents.join('\n\n')
-					, 'utf8'
-					, (err) ->
+	process = (prodTargetCoffeeFile, prodTargetJsFile) ->
+		util.log "Processing to #{prodTargetJsFile} from #{prodTargetCoffeeFile}"
+		fs.writeFile prodTargetCoffeeFile
+				, appContents.join('\n\n')
+				, 'utf8'
+				, (err) ->
+			handleError(err) if err
+			
+			prodCoffeeOpts = "--bare --output #{prodTargetJsDir} --compile #{prodTargetCoffeeFile}"
+			exec "coffee #{prodCoffeeOpts}", (err, stdout, stderr) ->
 				handleError(err) if err
-				
-				prodCoffeeOpts = "--bare --output #{prodTargetJsDir} --compile #{prodTargetCoffeeFile}"
-				exec "coffee #{prodCoffeeOpts}", (err, stdout, stderr) ->
-					handleError(err) if err
-					message = "Compiled #{prodTargetJsFile}"
-					util.log message
-					displayNotification message
-					fs.unlink prodTargetCoffeeFile, (err) -> handleError(err) if err
-					invoke 'uglify'
+				message = "Compiled #{prodTargetJsFile}"
+				util.log message
+				displayNotification message
+				fs.unlink prodTargetCoffeeFile, (err) -> handleError(err) if err
+				invoke 'uglify'
 
 task 'watch:test', 'Watch test specs and build changes', ->
 	invoke 'build:test'
