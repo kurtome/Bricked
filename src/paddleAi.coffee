@@ -1,7 +1,7 @@
 bricked.TRAINING_DATA_SIZE = 1000
-bricked.PADDLE_X_FORCE = 7
-bricked.TRAINING_SCALE = 2000
-bricked.TRAINING_OFFSET = bricked.WIDTH
+bricked.PADDLE_X_FORCE = 10
+bricked.TRAINING_OFFSET = bricked.scaleToPhys bricked.WIDTH
+bricked.TRAINING_SCALE = bricked.TRAINING_OFFSET * 2
 bricked.MAX_PREDICTIONS = 200
 bricked.MARGIN = 0.1
 
@@ -13,7 +13,7 @@ bricked.VX_POS = 3
 #bricked.VY_POS = 3
 
 ###
-# Creates the AI for the paddle
+# Createbricked.TRAINING_OFFSET * 2
 ###
 class PaddleAi
 	###
@@ -31,17 +31,22 @@ class PaddleAi
 		@isTrained = false
 		@wasRecentDataTrained = false
 
+	###
+	# Contact event handler for the physics world.
+	###
 	beginContact: (contact) ->
 		bodyA = contact.GetFixtureA().GetBody()
 		bodyB = contact.GetFixtureB().GetBody()
 
 		if (bodyA == bricked.ball or bodyB == bricked.ball)
-			# Clear out the recent data when the ball hits something
-			# so we don't train for superflous stuff
-			@recentData = []
-
 			if (bodyA == @paddle or bodyB == @paddle)
 				this.trainRecentData()
+			else
+				
+				# Clear out the recent data when the ball hits something
+				# so we don't train for superflous stuff
+				#if (Math.random() > .5)
+				@recentData = []
 
 	###
 	# Callback for the onmessage of the trainingWorker
@@ -57,10 +62,7 @@ class PaddleAi
 	# Applies a horizontal force to the paddle
 	###
 	applyXForce: (xForce) ->
-		b2Vec2 = Box2D.Common.Math.b2Vec2
-		centerPoint = @paddle.GetPosition()
-		force = new b2Vec2(xForce, 0)
-		@paddle.ApplyForce(force, centerPoint)
+		bricked.applyXForce(@paddle, xForce)
 
 	###
 	# Moves the paddle to the left
@@ -113,6 +115,7 @@ class PaddleAi
 		ballLinearVelocity = bricked.ball.GetLinearVelocity()
 		paddlePosition = @paddle.GetPosition()
 		relativeHorizontalPos = paddlePosition.x - ballPosition.x
+		relativeVerticalPos = ballPosition.y - paddlePosition.y
 		
 		# Figure out left/right position
 		distanceLeft = 0
@@ -137,6 +140,7 @@ class PaddleAi
 			this.scaleToTraining(distanceRight),
 			this.scaleToTraining(velocityLeft),
 			this.scaleToTraining(velocityRight)
+			#this.scaleToTraining(relativeVerticalPos)
 		]
 		return data
 

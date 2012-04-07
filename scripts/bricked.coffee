@@ -28,11 +28,49 @@ bricked.getCurrentTime = ->
 	currentTime = new Date()
 	return currentTime.getTime()
 
+###
+ Converts screen points (pixels) to points the 
+ physics engine works with
+###
+bricked.scaleToPhys = (x) -> return (x / bricked.SCALE)
+
+###
+ Converts screen points (pixels) vector to points 
+ the physics engine works with
+###
+bricked.scaleVecToPhys = (vec) ->
+	vec.Multiply(1 / bricked.SCALE)
+	return vec
+
+###
+ Converts physics points to points the screen points
+ (pixels)
+###
+bricked.scaleToScreen = (x) -> return (x * bricked.SCALE)
+
+###
+# Applies a horizontal force to a body
+###
+bricked.applyXForce = (body, xForce) ->
+	b2Vec2 = Box2D.Common.Math.b2Vec2
+	centerPoint = body.GetPosition()
+	force = new b2Vec2(xForce, 0)
+	body.ApplyForce(force, centerPoint)
+
+###
+# Applies a vertical force to a body
+###
+bricked.applyYForce = (body, yForce) ->
+	b2Vec2 = Box2D.Common.Math.b2Vec2
+	centerPoint = body.GetPosition()
+	force = new b2Vec2(0, yForce)
+	body.ApplyForce(force, centerPoint)
+
 
 bricked.TRAINING_DATA_SIZE = 1000
-bricked.PADDLE_X_FORCE = 7
-bricked.TRAINING_SCALE = 2000
-bricked.TRAINING_OFFSET = bricked.WIDTH
+bricked.PADDLE_X_FORCE = 10
+bricked.TRAINING_OFFSET = bricked.scaleToPhys bricked.WIDTH
+bricked.TRAINING_SCALE = bricked.TRAINING_OFFSET * 2
 bricked.MAX_PREDICTIONS = 200
 bricked.MARGIN = 0.1
 
@@ -44,7 +82,7 @@ bricked.VX_POS = 3
 #bricked.VY_POS = 3
 
 ###
-# Creates the AI for the paddle
+# Createbricked.TRAINING_OFFSET * 2
 ###
 class PaddleAi
 	###
@@ -62,17 +100,22 @@ class PaddleAi
 		@isTrained = false
 		@wasRecentDataTrained = false
 
+	###
+	# Contact event handler for the physics world.
+	###
 	beginContact: (contact) ->
 		bodyA = contact.GetFixtureA().GetBody()
 		bodyB = contact.GetFixtureB().GetBody()
 
 		if (bodyA == bricked.ball or bodyB == bricked.ball)
-			# Clear out the recent data when the ball hits something
-			# so we don't train for superflous stuff
-			@recentData = []
-
 			if (bodyA == @paddle or bodyB == @paddle)
 				this.trainRecentData()
+			else
+				
+				# Clear out the recent data when the ball hits something
+				# so we don't train for superflous stuff
+				#if (Math.random() > .5)
+				@recentData = []
 
 	###
 	# Callback for the onmessage of the trainingWorker
@@ -88,10 +131,7 @@ class PaddleAi
 	# Applies a horizontal force to the paddle
 	###
 	applyXForce: (xForce) ->
-		b2Vec2 = Box2D.Common.Math.b2Vec2
-		centerPoint = @paddle.GetPosition()
-		force = new b2Vec2(xForce, 0)
-		@paddle.ApplyForce(force, centerPoint)
+		bricked.applyXForce(@paddle, xForce)
 
 	###
 	# Moves the paddle to the left
@@ -144,6 +184,7 @@ class PaddleAi
 		ballLinearVelocity = bricked.ball.GetLinearVelocity()
 		paddlePosition = @paddle.GetPosition()
 		relativeHorizontalPos = paddlePosition.x - ballPosition.x
+		relativeVerticalPos = ballPosition.y - paddlePosition.y
 		
 		# Figure out left/right position
 		distanceLeft = 0
@@ -168,6 +209,7 @@ class PaddleAi
 			this.scaleToTraining(distanceRight),
 			this.scaleToTraining(velocityLeft),
 			this.scaleToTraining(velocityRight)
+			#this.scaleToTraining(relativeVerticalPos)
 		]
 		return data
 
@@ -196,7 +238,7 @@ class PaddleAi
 			this.trainRecentData()
 
 	###
-	# Execute then the ball dies
+	# Execute when the ball dies
 	###
 	ballDied: ->
 		@wasRecentDataTrained = false
@@ -283,25 +325,6 @@ window.requestAnimFrame = do ->
 		(callback, element) -> 
 			window.setTimeout(callback, 1000 / 60)
 
-###
- Converts screen points (pixels) to points the 
- physics engine works with
-###
-bricked.scaleToPhys = (x) -> return (x / bricked.SCALE)
-
-###
- Converts screen points (pixels) vector to points 
- the physics engine works with
-###
-bricked.scaleVecToPhys = (vec) ->
-	vec.Multiply(1 / bricked.SCALE)
-	return vec
-
-###
- Converts physics points to points the screen points
- (pixels)
-###
-bricked.scaleToScreen = (x) -> return (x * bricked.SCALE)
 
 ###
  Creates wall boundaries fo the game
@@ -369,7 +392,7 @@ bricked.createBall = ->
 	fixDef = new b2FixtureDef
 	fixDef.density = 1.0
 	fixDef.friction = 0
-	fixDef.restitution = 1
+	fixDef.restitution = 1.1
 	radius = bricked.scaleToPhys(bricked.BALL_RADIUS)
 	fixDef.shape = new b2CircleShape(radius)
 
@@ -436,7 +459,6 @@ bricked.createPaddle = ->
  Handles the BeginContact event from the physics 
  world.
 ###
-
 bricked.beginContact = (contact) ->
 	bricked.paddleAi.beginContact(contact)
 
@@ -484,10 +506,6 @@ bricked.init = ->
 # ~init() 
 #
 
-bricked.getCurrentTime = ->
-	currentTime = new Date()
-	return currentTime.getTime()
-
 ###
  Gives the ball its initial push
 ###
@@ -495,9 +513,9 @@ bricked.startBall = ->
 	bricked.ballStartTime = bricked.getCurrentTime()
 	b2Vec2 = Box2D.Common.Math.b2Vec2
 
-	# Randomize magnitude of forces between 150 - 250
-	xForce = Math.random() * 100 + 150
-	yForce = Math.random() * 100 + 150
+	# Randomize magnitude of forces between 100 - 150
+	xForce = Math.random() * 50 + 100
+	yForce = Math.random() * 50 + 100
 	# Randomize direction of forces
 	if Math.random() > 0.5 then xForce *= -1
 	if Math.random() > 0.5 then yForce *= -1
@@ -507,13 +525,15 @@ bricked.startBall = ->
 	centerPoint = bricked.ball.GetPosition()
 	bricked.ball.ApplyForce(initialForce, centerPoint)
 
+###
+# Kill the ball
+###
 bricked.killBall = ->
 	bricked.paddleAi.ballDied()
 	bricked.didBallDie = false
 	bricked.world.DestroyBody(bricked.ball)
 	bricked.ball = bricked.createBall()
 	bricked.startBall()
-
 
 ###
  Does all the work we need to do at each tick of the
@@ -528,6 +548,14 @@ bricked.update = ->
 		bricked.killBall()
 	else if (bricked.getCurrentTime() - bricked.ballStartTime) > (60 * 1000)
 		bricked.killBall()
+
+	# Make sure the ball isn't stuck
+	if (bricked.ball.GetLinearVelocity().x is 0)
+		# Give it a slight nudge
+		bricked.applyXForce bricked.ball, 0.1
+	else if (bricked.ball.GetLinearVelocity().y is 0)
+		# Give it a slight nudge
+		bricked.applyYForce bricked.ball, 0.1
 
 	# Update paddle
 	bricked.paddleAi.update()

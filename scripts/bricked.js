@@ -37,13 +37,65 @@ bricked.getCurrentTime = function() {
   return currentTime.getTime();
 };
 
+/*
+ Converts screen points (pixels) to points the 
+ physics engine works with
+*/
+
+bricked.scaleToPhys = function(x) {
+  return x / bricked.SCALE;
+};
+
+/*
+ Converts screen points (pixels) vector to points 
+ the physics engine works with
+*/
+
+bricked.scaleVecToPhys = function(vec) {
+  vec.Multiply(1 / bricked.SCALE);
+  return vec;
+};
+
+/*
+ Converts physics points to points the screen points
+ (pixels)
+*/
+
+bricked.scaleToScreen = function(x) {
+  return x * bricked.SCALE;
+};
+
+/*
+# Applies a horizontal force to a body
+*/
+
+bricked.applyXForce = function(body, xForce) {
+  var b2Vec2, centerPoint, force;
+  b2Vec2 = Box2D.Common.Math.b2Vec2;
+  centerPoint = body.GetPosition();
+  force = new b2Vec2(xForce, 0);
+  return body.ApplyForce(force, centerPoint);
+};
+
+/*
+# Applies a vertical force to a body
+*/
+
+bricked.applyYForce = function(body, yForce) {
+  var b2Vec2, centerPoint, force;
+  b2Vec2 = Box2D.Common.Math.b2Vec2;
+  centerPoint = body.GetPosition();
+  force = new b2Vec2(0, yForce);
+  return body.ApplyForce(force, centerPoint);
+};
+
 bricked.TRAINING_DATA_SIZE = 1000;
 
-bricked.PADDLE_X_FORCE = 7;
+bricked.PADDLE_X_FORCE = 10;
 
-bricked.TRAINING_SCALE = 2000;
+bricked.TRAINING_OFFSET = bricked.scaleToPhys(bricked.WIDTH);
 
-bricked.TRAINING_OFFSET = bricked.WIDTH;
+bricked.TRAINING_SCALE = bricked.TRAINING_OFFSET * 2;
 
 bricked.MAX_PREDICTIONS = 200;
 
@@ -58,7 +110,7 @@ bricked.RELATIVE_POS = 2;
 bricked.VX_POS = 3;
 
 /*
-# Creates the AI for the paddle
+# Createbricked.TRAINING_OFFSET * 2
 */
 
 PaddleAi = (function() {
@@ -80,14 +132,19 @@ PaddleAi = (function() {
     this.wasRecentDataTrained = false;
   }
 
+  /*
+  	# Contact event handler for the physics world.
+  */
+
   PaddleAi.prototype.beginContact = function(contact) {
     var bodyA, bodyB;
     bodyA = contact.GetFixtureA().GetBody();
     bodyB = contact.GetFixtureB().GetBody();
     if (bodyA === bricked.ball || bodyB === bricked.ball) {
-      this.recentData = [];
       if (bodyA === this.paddle || bodyB === this.paddle) {
         return this.trainRecentData();
+      } else {
+        return this.recentData = [];
       }
     }
   };
@@ -108,11 +165,7 @@ PaddleAi = (function() {
   */
 
   PaddleAi.prototype.applyXForce = function(xForce) {
-    var b2Vec2, centerPoint, force;
-    b2Vec2 = Box2D.Common.Math.b2Vec2;
-    centerPoint = this.paddle.GetPosition();
-    force = new b2Vec2(xForce, 0);
-    return this.paddle.ApplyForce(force, centerPoint);
+    return bricked.applyXForce(this.paddle, xForce);
   };
 
   /*
@@ -170,11 +223,12 @@ PaddleAi = (function() {
   */
 
   PaddleAi.prototype.buildCurrentBallData = function() {
-    var ballLinearVelocity, ballPosition, data, distanceLeft, distanceRight, paddlePosition, relativeHorizontalPos, velocityLeft, velocityRight;
+    var ballLinearVelocity, ballPosition, data, distanceLeft, distanceRight, paddlePosition, relativeHorizontalPos, relativeVerticalPos, velocityLeft, velocityRight;
     ballPosition = bricked.ball.GetPosition();
     ballLinearVelocity = bricked.ball.GetLinearVelocity();
     paddlePosition = this.paddle.GetPosition();
     relativeHorizontalPos = paddlePosition.x - ballPosition.x;
+    relativeVerticalPos = ballPosition.y - paddlePosition.y;
     distanceLeft = 0;
     distanceRight = 0;
     if (relativeHorizontalPos < 0) {
@@ -214,7 +268,7 @@ PaddleAi = (function() {
   };
 
   /*
-  	# Execute then the ball dies
+  	# Execute when the ball dies
   */
 
   PaddleAi.prototype.ballDied = function() {
@@ -295,34 +349,6 @@ window.requestAnimFrame = (function() {
 })();
 
 /*
- Converts screen points (pixels) to points the 
- physics engine works with
-*/
-
-bricked.scaleToPhys = function(x) {
-  return x / bricked.SCALE;
-};
-
-/*
- Converts screen points (pixels) vector to points 
- the physics engine works with
-*/
-
-bricked.scaleVecToPhys = function(vec) {
-  vec.Multiply(1 / bricked.SCALE);
-  return vec;
-};
-
-/*
- Converts physics points to points the screen points
- (pixels)
-*/
-
-bricked.scaleToScreen = function(x) {
-  return x * bricked.SCALE;
-};
-
-/*
  Creates wall boundaries fo the game
 */
 
@@ -381,7 +407,7 @@ bricked.createBall = function() {
   fixDef = new b2FixtureDef;
   fixDef.density = 1.0;
   fixDef.friction = 0;
-  fixDef.restitution = 1;
+  fixDef.restitution = 1.1;
   radius = bricked.scaleToPhys(bricked.BALL_RADIUS);
   fixDef.shape = new b2CircleShape(radius);
   bodyDef = new b2BodyDef;
@@ -472,12 +498,6 @@ bricked.init = function() {
   return bricked.world.SetDebugDraw(debugDraw);
 };
 
-bricked.getCurrentTime = function() {
-  var currentTime;
-  currentTime = new Date();
-  return currentTime.getTime();
-};
-
 /*
  Gives the ball its initial push
 */
@@ -486,14 +506,18 @@ bricked.startBall = function() {
   var b2Vec2, centerPoint, initialForce, xForce, yForce;
   bricked.ballStartTime = bricked.getCurrentTime();
   b2Vec2 = Box2D.Common.Math.b2Vec2;
-  xForce = Math.random() * 100 + 150;
-  yForce = Math.random() * 100 + 150;
+  xForce = Math.random() * 50 + 100;
+  yForce = Math.random() * 50 + 100;
   if (Math.random() > 0.5) xForce *= -1;
   if (Math.random() > 0.5) yForce *= -1;
   initialForce = new b2Vec2(xForce, yForce);
   centerPoint = bricked.ball.GetPosition();
   return bricked.ball.ApplyForce(initialForce, centerPoint);
 };
+
+/*
+# Kill the ball
+*/
 
 bricked.killBall = function() {
   bricked.paddleAi.ballDied();
@@ -516,6 +540,11 @@ bricked.update = function() {
     bricked.killBall();
   } else if ((bricked.getCurrentTime() - bricked.ballStartTime) > (60 * 1000)) {
     bricked.killBall();
+  }
+  if (bricked.ball.GetLinearVelocity().x === 0) {
+    bricked.applyXForce(bricked.ball, 0.1);
+  } else if (bricked.ball.GetLinearVelocity().y === 0) {
+    bricked.applyYForce(bricked.ball, 0.1);
   }
   bricked.paddleAi.update();
   bricked.stats.update();

@@ -10,25 +10,6 @@ window.requestAnimFrame = do ->
 		(callback, element) -> 
 			window.setTimeout(callback, 1000 / 60)
 
-###
- Converts screen points (pixels) to points the 
- physics engine works with
-###
-bricked.scaleToPhys = (x) -> return (x / bricked.SCALE)
-
-###
- Converts screen points (pixels) vector to points 
- the physics engine works with
-###
-bricked.scaleVecToPhys = (vec) ->
-	vec.Multiply(1 / bricked.SCALE)
-	return vec
-
-###
- Converts physics points to points the screen points
- (pixels)
-###
-bricked.scaleToScreen = (x) -> return (x * bricked.SCALE)
 
 ###
  Creates wall boundaries fo the game
@@ -96,7 +77,7 @@ bricked.createBall = ->
 	fixDef = new b2FixtureDef
 	fixDef.density = 1.0
 	fixDef.friction = 0
-	fixDef.restitution = 1
+	fixDef.restitution = 1.1
 	radius = bricked.scaleToPhys(bricked.BALL_RADIUS)
 	fixDef.shape = new b2CircleShape(radius)
 
@@ -163,7 +144,6 @@ bricked.createPaddle = ->
  Handles the BeginContact event from the physics 
  world.
 ###
-
 bricked.beginContact = (contact) ->
 	bricked.paddleAi.beginContact(contact)
 
@@ -211,10 +191,6 @@ bricked.init = ->
 # ~init() 
 #
 
-bricked.getCurrentTime = ->
-	currentTime = new Date()
-	return currentTime.getTime()
-
 ###
  Gives the ball its initial push
 ###
@@ -222,9 +198,9 @@ bricked.startBall = ->
 	bricked.ballStartTime = bricked.getCurrentTime()
 	b2Vec2 = Box2D.Common.Math.b2Vec2
 
-	# Randomize magnitude of forces between 150 - 250
-	xForce = Math.random() * 100 + 150
-	yForce = Math.random() * 100 + 150
+	# Randomize magnitude of forces between 100 - 150
+	xForce = Math.random() * 50 + 100
+	yForce = Math.random() * 50 + 100
 	# Randomize direction of forces
 	if Math.random() > 0.5 then xForce *= -1
 	if Math.random() > 0.5 then yForce *= -1
@@ -234,13 +210,15 @@ bricked.startBall = ->
 	centerPoint = bricked.ball.GetPosition()
 	bricked.ball.ApplyForce(initialForce, centerPoint)
 
+###
+# Kill the ball
+###
 bricked.killBall = ->
 	bricked.paddleAi.ballDied()
 	bricked.didBallDie = false
 	bricked.world.DestroyBody(bricked.ball)
 	bricked.ball = bricked.createBall()
 	bricked.startBall()
-
 
 ###
  Does all the work we need to do at each tick of the
@@ -255,6 +233,14 @@ bricked.update = ->
 		bricked.killBall()
 	else if (bricked.getCurrentTime() - bricked.ballStartTime) > (60 * 1000)
 		bricked.killBall()
+
+	# Make sure the ball isn't stuck
+	if (bricked.ball.GetLinearVelocity().x is 0)
+		# Give it a slight nudge
+		bricked.applyXForce bricked.ball, 0.1
+	else if (bricked.ball.GetLinearVelocity().y is 0)
+		# Give it a slight nudge
+		bricked.applyYForce bricked.ball, 0.1
 
 	# Update paddle
 	bricked.paddleAi.update()
