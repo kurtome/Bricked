@@ -54,9 +54,18 @@
 		<script type="text/javascript" src="./scripts/bricked.js"></script>
 
     <div class="description">
-		This is a work in progress proof-of-concept "game" which will attempt to have a simple AI agent learn and become proficient in game from scratch. 
+		<p>
+		This is a work in progress proof-of-concept "game" which will attempt to have a simple AI agent learn and become proficient in game from scratch. All code is written in CoffeeScript.
+		</p>
+		<p>
+		The learning is done as Neural Network classification training.
+		The only data given to classify a point is simple data such as the ball's and paddle's relative position, velocity, etc. 
+		The possible classifcations for each point are <b>left</b>, <b>right</b>, <b>stay</b>, each indicating the desired action of the paddle. 
+		Training data is gained by storing classification data throughout the a single run of the ball, and when the ball hits or misses the paddle the stored data points are manually classified and passed to the nearal net trainer as training data.
+		The classification function returned from the neural net trainer is used whenever training completes, and then the next batch of training data can be sent to the trainer.
+		The neural net trains on a separate Web Worker thread allow training to happen in real time.
+		</p>
 
-		Note: the current iteration is cheating, it is not learning, just pre-programmed to naively follow the horizontal position of the ball.
     </div>
 
 
