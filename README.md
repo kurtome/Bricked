@@ -8,3 +8,4 @@ Other projects used:
 
 * `box2dJ` http://box2d-js.sourceforge.net/
 * `brain` http://harthur.github.com/brain/
+* `statsJs` https://github.com/mrdoob/stats.js 
