@@ -1,28 +1,3 @@
-# global object to hold the data and methods for this game
-bricked = { }
-
-# Create a stats object for tracking FPS
-bricked.stats = new Stats()
-
-# Put the stats visual in the body.
-document.body.appendChild(bricked.stats.domElement)
-
-bricked.canvas = document.getElementById("c")
-bricked.ctx = bricked.canvas.getContext("2d")
-
-# Constants
-bricked.SCALE = 30
-bricked.FRAME_RATE = 1 / 60
-bricked.VELOCITY_ITERATIONS = 10
-bricked.POSITION_ITERATIONS = 10
-bricked.GRAVITY = new Box2D.Common.Math.b2Vec2(0, 0)
-bricked.WIDTH = bricked.canvas.width
-bricked.HEIGHT = bricked.canvas.height
-bricked.BALL_RADIUS = 10
-# Path constants
-bricked.paths = { }
-bricked.paths.TRAINER_WORKER = 'trainerWorker.min.js'
-
 ###
  Function that animates the 
 ###
@@ -190,26 +165,18 @@ bricked.createPaddle = ->
 ###
 
 bricked.beginContact = (contact) ->
+	bricked.paddleAi.beginContact(contact)
+
 	bodyA = contact.GetFixtureA().GetBody()
 	bodyB = contact.GetFixtureB().GetBody()
 
-	# See if the ball hit the bottom wall, and thus is dead
-	if (bodyA == bricked.ball and bodyB == bricked.bottomWall or
-	bodyA == bricked.bottomWall and bodyB == bricked.ball)
-		bricked.didBallDie = true
+	if (bodyA == bricked.ball or bodyB == bricked.ball)
+		if (bodyA == bricked.paddle or bodyB == bricked.paddle)
+			bricked.ballStartTime = bricked.getCurrentTime()
 
-###
- Creates the neural network for learning.
-###
-bricked.createNn = ->
-	options = {
-		hidden: [16],
-		growthRate: 1.0,
-		learningRate: 0.8
-	}
-	net = new brain.NeuralNetwork(options)
-	return net
-
+		# See if the ball hit the bottom wall, and thus is dead
+		if (bodyA == bricked.bottomWall or bodyB == bricked.bottomWall)
+			bricked.didBallDie = true
 
 ###
  Initalizes everything we need to get started, should
@@ -226,8 +193,7 @@ bricked.init = ->
 	bricked.ball = bricked.createBall()
 	bricked.paddle = bricked.createPaddle()
 
-	neuralNet = bricked.createNn()
-	bricked.paddleAi = new PaddleAi(bricked.paddle, neuralNet)
+	bricked.paddleAi = new PaddleAi(bricked.paddle, bricked.ball)
 
 	# Contact listener for collision detection
 	listener = new Box2D.Dynamics.b2ContactListener
@@ -243,16 +209,22 @@ bricked.init = ->
 	debugDraw.SetFlags(b2DebugDraw.e_shapeBit | b2DebugDraw.e_jointBit)
 	bricked.world.SetDebugDraw(debugDraw)
 # ~init() 
+#
+
+bricked.getCurrentTime = ->
+	currentTime = new Date()
+	return currentTime.getTime()
 
 ###
  Gives the ball its initial push
 ###
 bricked.startBall = ->
+	bricked.ballStartTime = bricked.getCurrentTime()
 	b2Vec2 = Box2D.Common.Math.b2Vec2
 
-	# Randomize magnitude of forces between 50 - 250
-	xForce = Math.random() * 200 + 50
-	yForce = Math.random() * 200 + 50
+	# Randomize magnitude of forces between 150 - 250
+	xForce = Math.random() * 100 + 150
+	yForce = Math.random() * 100 + 150
 	# Randomize direction of forces
 	if Math.random() > 0.5 then xForce *= -1
 	if Math.random() > 0.5 then yForce *= -1
@@ -261,6 +233,14 @@ bricked.startBall = ->
 	# Apply the force to the center of the ball
 	centerPoint = bricked.ball.GetPosition()
 	bricked.ball.ApplyForce(initialForce, centerPoint)
+
+bricked.killBall = ->
+	bricked.paddleAi.ballDied()
+	bricked.didBallDie = false
+	bricked.world.DestroyBody(bricked.ball)
+	bricked.ball = bricked.createBall()
+	bricked.startBall()
+
 
 ###
  Does all the work we need to do at each tick of the
@@ -272,10 +252,9 @@ bricked.update = ->
 	bricked.world.ClearForces()
 
 	if (bricked.didBallDie)
-		bricked.didBallDie = false
-		bricked.world.DestroyBody(bricked.ball)
-		bricked.ball = bricked.createBall()
-		bricked.startBall()
+		bricked.killBall()
+	else if (bricked.getCurrentTime() - bricked.ballStartTime) > (60 * 1000)
+		bricked.killBall()
 
 	# Update paddle
 	bricked.paddleAi.update()

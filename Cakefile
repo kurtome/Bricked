@@ -19,8 +19,9 @@ testTargetJsDir	  = 'test/js'
 #prodCoffeeOpts = "--bare --output #{prodTargetJsDir} --compile #{prodTargetCoffeeFile}"
 testCoffeeOpts = "--output #{testTargetJsDir}"
 
+# Order matters!
 inOutPairs = [
-	['bricked', ['paddleAi', 'main']]
+	['bricked', ['setup', 'paddleAi', 'main']]
 	['trainerWorker', ['trainerWorker']]
 ]
 #prodCoffeeFiles = []
@@ -107,7 +108,7 @@ process = (prodTargetCoffeeFile, prodTargetJsFile, appContents, prodTargetFileNa
 			message = "Compiled #{prodTargetJsFile}"
 			util.log message
 			displayNotification message
-			fs.unlink prodTargetCoffeeFile, (err) -> handleError(err) if err
+			#fs.unlink prodTargetCoffeeFile, (err) -> handleError(err) if err
 			uglifyJs prodTargetFileName
 
 ###

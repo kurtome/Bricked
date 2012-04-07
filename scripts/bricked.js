@@ -1,62 +1,5 @@
-
-/*
- Creates the AI for the paddle
-*/
-
 var PaddleAi, bricked;
-
-bricked.PaddleAi = PaddleAi = (function() {
-
-  function PaddleAi(paddle, learner) {
-    this.paddle = paddle;
-    this.learner = learner;
-    this.trainingWorker = new Worker(bricked.paths.TRAINER_WORKER);
-    this.trainingWorker.onmessage = this.onTrainerWorkerMessage;
-    this.predictWorld = function() {
-      return null;
-    };
-  }
-
-  PaddleAi.prototype.onTrainerWorkerMessage = function(event) {
-    return this.predictWorld = event.data;
-  };
-
-  PaddleAi.prototype.applyXForce = function(xForce) {
-    var b2Vec2, centerPoint, force;
-    b2Vec2 = Box2D.Common.Math.b2Vec2;
-    centerPoint = this.paddle.GetPosition();
-    force = new b2Vec2(xForce, 0);
-    return this.paddle.ApplyForce(force, centerPoint);
-  };
-
-  PaddleAi.prototype.moveLeft = function() {
-    return this.applyXForce(-5);
-  };
-
-  PaddleAi.prototype.moveRight = function() {
-    return this.applyXForce(5);
-  };
-
-  PaddleAi.prototype.updateGoalX = function() {
-    return this.goalX = bricked.ball.GetPosition().x;
-  };
-
-  PaddleAi.prototype.update = function() {
-    var currentX;
-    this.updateGoalX();
-    currentX = this.paddle.GetPosition().x;
-    if (currentX < this.goalX) {
-      return this.moveRight();
-    } else if (currentX > this.goalX) {
-      return this.moveLeft();
-    } else {
-
-    }
-  };
-
-  return PaddleAi;
-
-})();
+var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
 
 bricked = {};
 
@@ -86,7 +29,260 @@ bricked.BALL_RADIUS = 10;
 
 bricked.paths = {};
 
-bricked.paths.TRAINER_WORKER = 'trainerWorker.min.js';
+bricked.paths.TRAINER_WORKER = 'scripts/trainerWorker.js';
+
+bricked.getCurrentTime = function() {
+  var currentTime;
+  currentTime = new Date();
+  return currentTime.getTime();
+};
+
+bricked.TRAINING_DATA_SIZE = 1000;
+
+bricked.PADDLE_X_FORCE = 7;
+
+bricked.TRAINING_SCALE = 2000;
+
+bricked.TRAINING_OFFSET = bricked.WIDTH;
+
+bricked.MAX_PREDICTIONS = 200;
+
+bricked.MARGIN = 0.1;
+
+bricked.X_POS = 0;
+
+bricked.PADDLE_POS = 1;
+
+bricked.RELATIVE_POS = 2;
+
+bricked.VX_POS = 3;
+
+/*
+# Creates the AI for the paddle
+*/
+
+PaddleAi = (function() {
+
+  /*
+  	# Constructor
+  */
+
+  function PaddleAi(paddle) {
+    this.paddle = paddle;
+    this.onTrainerWorkerMessage = __bind(this.onTrainerWorkerMessage, this);
+    this.trainingWorker = new Worker(bricked.paths.TRAINER_WORKER);
+    this.trainingWorker.onmessage = this.onTrainerWorkerMessage;
+    this.trainedLearner = new brain.NeuralNetwork();
+    this.trainingData = [];
+    this.recentData = [];
+    this.isWaitingForWorker = false;
+    this.isTrained = false;
+    this.wasRecentDataTrained = false;
+  }
+
+  PaddleAi.prototype.beginContact = function(contact) {
+    var bodyA, bodyB;
+    bodyA = contact.GetFixtureA().GetBody();
+    bodyB = contact.GetFixtureB().GetBody();
+    if (bodyA === bricked.ball || bodyB === bricked.ball) {
+      this.recentData = [];
+      if (bodyA === this.paddle || bodyB === this.paddle) {
+        return this.trainRecentData();
+      }
+    }
+  };
+
+  /*
+  	# Callback for the onmessage of the trainingWorker
+  */
+
+  PaddleAi.prototype.onTrainerWorkerMessage = function(event) {
+    this.trainedLearner.fromJSON(event.data);
+    this.isWaitingForWorker = false;
+    this.isTrained = true;
+    return console.log("Got prediction function");
+  };
+
+  /*
+  	# Applies a horizontal force to the paddle
+  */
+
+  PaddleAi.prototype.applyXForce = function(xForce) {
+    var b2Vec2, centerPoint, force;
+    b2Vec2 = Box2D.Common.Math.b2Vec2;
+    centerPoint = this.paddle.GetPosition();
+    force = new b2Vec2(xForce, 0);
+    return this.paddle.ApplyForce(force, centerPoint);
+  };
+
+  /*
+  	# Moves the paddle to the left
+  */
+
+  PaddleAi.prototype.moveLeft = function() {
+    return this.applyXForce(-1 * bricked.PADDLE_X_FORCE);
+  };
+
+  /*
+  	# Moves the paddle to the right
+  */
+
+  PaddleAi.prototype.moveRight = function() {
+    return this.applyXForce(bricked.PADDLE_X_FORCE);
+  };
+
+  /*
+  	# Updates the goal X position 
+  	updateGoalX: ->
+  		# Let's cheat for now and try follow the ball's position
+  		@goalX = bricked.ball.GetPosition().x
+  
+  		if @isTrained
+  			finalY = @paddle.GetPosition().y
+  			curY = bricked.ball.GetPosition().y
+  			inputData = this.buildCurrentBallData()
+  			count = 0
+  			while curY < finalY and count < bricked.MAX_PREDICTIONS
+  				inputData = @trainedLearner.run inputData
+  				@goalX = this.scaleFromTraining inputData[0]
+  				curY = this.scaleFromTraining inputData[1]
+  				count++
+  */
+
+  /*
+  	# TODO
+  */
+
+  PaddleAi.prototype.scaleToTraining = function(value) {
+    return (value + bricked.TRAINING_OFFSET) / bricked.TRAINING_SCALE;
+  };
+
+  /*
+  	# TODO
+  */
+
+  PaddleAi.prototype.scaleFromTraining = function(value) {
+    return (value * bricked.TRAINING_SCALE) - bricked.TRAINING_OFFSET;
+  };
+
+  /*
+  	# TODO
+  */
+
+  PaddleAi.prototype.buildCurrentBallData = function() {
+    var ballLinearVelocity, ballPosition, data, distanceLeft, distanceRight, paddlePosition, relativeHorizontalPos, velocityLeft, velocityRight;
+    ballPosition = bricked.ball.GetPosition();
+    ballLinearVelocity = bricked.ball.GetLinearVelocity();
+    paddlePosition = this.paddle.GetPosition();
+    relativeHorizontalPos = paddlePosition.x - ballPosition.x;
+    distanceLeft = 0;
+    distanceRight = 0;
+    if (relativeHorizontalPos < 0) {
+      distanceLeft = Math.abs(relativeHorizontalPos);
+    } else {
+      distanceRight = relativeHorizontalPos;
+    }
+    velocityLeft = 0;
+    velocityRight = 0;
+    if (ballLinearVelocity.x < 0) {
+      velocityLeft = Math.abs(ballLinearVelocity.x);
+    } else {
+      velocityRight = ballLinearVelocity.x;
+    }
+    data = [this.scaleToTraining(ballPosition.x), this.scaleToTraining(paddlePosition.x), this.scaleToTraining(distanceLeft), this.scaleToTraining(distanceRight), this.scaleToTraining(velocityLeft), this.scaleToTraining(velocityRight)];
+    return data;
+  };
+
+  /*
+  	# Execute training related work for each loop
+  */
+
+  PaddleAi.prototype.updateTraining = function() {
+    if (this.trainingData.length > bricked.TRAINING_DATA_SIZE) {
+      console.log('Training full');
+      return;
+    }
+    if (Math.random() > .5) this.recentData.push(this.buildCurrentBallData());
+    if (this.recentData.length > bricked.TRAINING_DATA_SIZE) {
+      this.recentData.shift();
+    }
+    this.prevBallPos = bricked.ball.GetPosition();
+    this.prevBallVelocity = bricked.ball.GetLinearVelocity();
+    if (bricked.ball.GetPosition().y > (this.paddle.GetPosition().y + .1)) {
+      return this.trainRecentData();
+    }
+  };
+
+  /*
+  	# Execute then the ball dies
+  */
+
+  PaddleAi.prototype.ballDied = function() {
+    return this.wasRecentDataTrained = false;
+  };
+
+  /*
+  	# TODO
+  */
+
+  PaddleAi.prototype.trainRecentData = function() {
+    var addedCount, currentBallX, dataBallX, dataPoint, leftVal, rightVal, stayMargin, stayVal, trainingDataPoint;
+    if (this.isWaitingForWorker || this.wasRecentDataTrained) return;
+    this.wasRecentDataTrained = true;
+    addedCount = 0;
+    while (this.recentData.length > 0) {
+      addedCount++;
+      if (addedCount > 5) break;
+      dataPoint = this.recentData.shift();
+      leftVal = 0;
+      rightVal = 0;
+      stayVal = 0;
+      currentBallX = bricked.ball.GetPosition().x;
+      dataBallX = this.scaleFromTraining(dataPoint[bricked.PADDLE_POS]);
+      stayMargin = .20;
+      if (Math.abs(currentBallX - dataBallX) < stayMargin) {
+        stayVal = 1;
+      } else if (currentBallX < dataBallX) {
+        leftVal = 1;
+      } else {
+        rightVal = 1;
+      }
+      trainingDataPoint = {
+        input: dataPoint,
+        output: {
+          left: leftVal,
+          right: rightVal,
+          stay: stayVal
+        }
+      };
+      this.trainingData.push(trainingDataPoint);
+    }
+    console.log("Sending data to training worker");
+    this.isWaitingForWorker = true;
+    return this.trainingWorker.postMessage(this.trainingData);
+  };
+
+  /*
+  	# Execute everything to be done during each game loop
+  */
+
+  PaddleAi.prototype.update = function() {
+    var inputData, output;
+    this.updateTraining();
+    if (this.isTrained) {
+      inputData = this.buildCurrentBallData();
+      output = this.trainedLearner.run(inputData);
+      if (output.stay > output.right && output.stay > output.left) {} else if (output.left > output.right) {
+        return this.moveLeft();
+      } else {
+        return this.moveRight();
+      }
+    }
+  };
+
+  return PaddleAi;
+
+})();
 
 /*
  Function that animates the
@@ -237,26 +433,17 @@ bricked.createPaddle = function() {
 
 bricked.beginContact = function(contact) {
   var bodyA, bodyB;
+  bricked.paddleAi.beginContact(contact);
   bodyA = contact.GetFixtureA().GetBody();
   bodyB = contact.GetFixtureB().GetBody();
-  if (bodyA === bricked.ball && bodyB === bricked.bottomWall || bodyA === bricked.bottomWall && bodyB === bricked.ball) {
-    return bricked.didBallDie = true;
+  if (bodyA === bricked.ball || bodyB === bricked.ball) {
+    if (bodyA === bricked.paddle || bodyB === bricked.paddle) {
+      bricked.ballStartTime = bricked.getCurrentTime();
+    }
+    if (bodyA === bricked.bottomWall || bodyB === bricked.bottomWall) {
+      return bricked.didBallDie = true;
+    }
   }
-};
-
-/*
- Creates the neural network for learning.
-*/
-
-bricked.createNn = function() {
-  var net, options;
-  options = {
-    hidden: [16],
-    growthRate: 1.0,
-    learningRate: 0.8
-  };
-  net = new brain.NeuralNetwork(options);
-  return net;
 };
 
 /*
@@ -265,15 +452,14 @@ bricked.createNn = function() {
 */
 
 bricked.init = function() {
-  var allowSleep, b2DebugDraw, debugDraw, listener, neuralNet;
+  var allowSleep, b2DebugDraw, debugDraw, listener;
   b2DebugDraw = Box2D.Dynamics.b2DebugDraw;
   allowSleep = true;
   bricked.world = new Box2D.Dynamics.b2World(bricked.GRAVITY, allowSleep);
   bricked.createWalls();
   bricked.ball = bricked.createBall();
   bricked.paddle = bricked.createPaddle();
-  neuralNet = bricked.createNn();
-  bricked.paddleAi = new PaddleAi(bricked.paddle, neuralNet);
+  bricked.paddleAi = new PaddleAi(bricked.paddle, bricked.ball);
   listener = new Box2D.Dynamics.b2ContactListener;
   listener.BeginContact = bricked.beginContact;
   bricked.world.SetContactListener(listener);
@@ -286,20 +472,35 @@ bricked.init = function() {
   return bricked.world.SetDebugDraw(debugDraw);
 };
 
+bricked.getCurrentTime = function() {
+  var currentTime;
+  currentTime = new Date();
+  return currentTime.getTime();
+};
+
 /*
  Gives the ball its initial push
 */
 
 bricked.startBall = function() {
   var b2Vec2, centerPoint, initialForce, xForce, yForce;
+  bricked.ballStartTime = bricked.getCurrentTime();
   b2Vec2 = Box2D.Common.Math.b2Vec2;
-  xForce = Math.random() * 200 + 50;
-  yForce = Math.random() * 200 + 50;
+  xForce = Math.random() * 100 + 150;
+  yForce = Math.random() * 100 + 150;
   if (Math.random() > 0.5) xForce *= -1;
   if (Math.random() > 0.5) yForce *= -1;
   initialForce = new b2Vec2(xForce, yForce);
   centerPoint = bricked.ball.GetPosition();
   return bricked.ball.ApplyForce(initialForce, centerPoint);
+};
+
+bricked.killBall = function() {
+  bricked.paddleAi.ballDied();
+  bricked.didBallDie = false;
+  bricked.world.DestroyBody(bricked.ball);
+  bricked.ball = bricked.createBall();
+  return bricked.startBall();
 };
 
 /*
@@ -312,10 +513,9 @@ bricked.update = function() {
   bricked.world.DrawDebugData();
   bricked.world.ClearForces();
   if (bricked.didBallDie) {
-    bricked.didBallDie = false;
-    bricked.world.DestroyBody(bricked.ball);
-    bricked.ball = bricked.createBall();
-    bricked.startBall();
+    bricked.killBall();
+  } else if ((bricked.getCurrentTime() - bricked.ballStartTime) > (60 * 1000)) {
+    bricked.killBall();
   }
   bricked.paddleAi.update();
   bricked.stats.update();
