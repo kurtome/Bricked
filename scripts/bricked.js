@@ -292,7 +292,7 @@ PaddleAi = (function() {
       stayVal = 0;
       currentBallX = bricked.ball.GetPosition().x;
       dataBallX = this.scaleFromTraining(dataPoint[bricked.PADDLE_POS]);
-      stayMargin = .20;
+      stayMargin = 1;
       if (Math.abs(currentBallX - dataBallX) < stayMargin) {
         stayVal = 1;
       } else if (currentBallX < dataBallX) {
