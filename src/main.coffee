@@ -201,9 +201,10 @@ bricked.startBall = ->
 	# Randomize magnitude of forces between 100 - 150
 	xForce = Math.random() * 50 + 100
 	yForce = Math.random() * 50 + 100
-	# Randomize direction of forces
+	# Randomize x direction 
 	if Math.random() > 0.5 then xForce *= -1
-	if Math.random() > 0.5 then yForce *= -1
+	# Always start upwards
+	yForce *= -1
 	initialForce = new b2Vec2(xForce, yForce)
 
 	# Apply the force to the center of the ball
@@ -235,12 +236,12 @@ bricked.update = ->
 		bricked.killBall()
 
 	# Make sure the ball isn't stuck
-	if (bricked.ball.GetLinearVelocity().x is 0)
+	if (Math.abs(bricked.ball.GetLinearVelocity().x) < 0.2)
 		# Give it a slight nudge
-		bricked.applyXForce bricked.ball, 0.1
-	else if (bricked.ball.GetLinearVelocity().y is 0)
+		bricked.applyXForce bricked.ball, 1
+	else if (Math.abs(bricked.ball.GetLinearVelocity().y) < 0.2)
 		# Give it a slight nudge
-		bricked.applyYForce bricked.ball, 0.1
+		bricked.applyYForce bricked.ball, 1
 
 	# Update paddle
 	bricked.paddleAi.update()

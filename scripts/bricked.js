@@ -141,10 +141,9 @@ PaddleAi = (function() {
     bodyA = contact.GetFixtureA().GetBody();
     bodyB = contact.GetFixtureB().GetBody();
     if (bodyA === bricked.ball || bodyB === bricked.ball) {
-      if (bodyA === this.paddle || bodyB === this.paddle) {
-        return this.trainRecentData();
-      } else {
-        return this.recentData = [];
+      this.recentData = [];
+      if (bodyA === this.paddle || bodyB === this.paddle) {} else {
+
       }
     }
   };
@@ -509,7 +508,7 @@ bricked.startBall = function() {
   xForce = Math.random() * 50 + 100;
   yForce = Math.random() * 50 + 100;
   if (Math.random() > 0.5) xForce *= -1;
-  if (Math.random() > 0.5) yForce *= -1;
+  yForce *= -1;
   initialForce = new b2Vec2(xForce, yForce);
   centerPoint = bricked.ball.GetPosition();
   return bricked.ball.ApplyForce(initialForce, centerPoint);
@@ -541,10 +540,10 @@ bricked.update = function() {
   } else if ((bricked.getCurrentTime() - bricked.ballStartTime) > (60 * 1000)) {
     bricked.killBall();
   }
-  if (bricked.ball.GetLinearVelocity().x === 0) {
-    bricked.applyXForce(bricked.ball, 0.1);
-  } else if (bricked.ball.GetLinearVelocity().y === 0) {
-    bricked.applyYForce(bricked.ball, 0.1);
+  if (Math.abs(bricked.ball.GetLinearVelocity().x) < 0.2) {
+    bricked.applyXForce(bricked.ball, 1);
+  } else if (Math.abs(bricked.ball.GetLinearVelocity().y) < 0.2) {
+    bricked.applyYForce(bricked.ball, 1);
   }
   bricked.paddleAi.update();
   bricked.stats.update();

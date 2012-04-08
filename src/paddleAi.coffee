@@ -39,14 +39,16 @@ class PaddleAi
 		bodyB = contact.GetFixtureB().GetBody()
 
 		if (bodyA == bricked.ball or bodyB == bricked.ball)
+			# Clear out the recent data when the ball hits something
+			# so we don't train for superflous stuff
+			@recentData = []
+
 			if (bodyA == @paddle or bodyB == @paddle)
-				this.trainRecentData()
+				#this.trainRecentData()
 			else
 				
-				# Clear out the recent data when the ball hits something
-				# so we don't train for superflous stuff
 				#if (Math.random() > .5)
-				@recentData = []
+				#@recentData = []
 
 	###
 	# Callback for the onmessage of the trainingWorker
