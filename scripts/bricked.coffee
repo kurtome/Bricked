@@ -211,7 +211,7 @@ class PaddleAi
 			this.scaleToTraining(distanceRight),
 			this.scaleToTraining(velocityLeft),
 			this.scaleToTraining(velocityRight)
-			#this.scaleToTraining(relativeVerticalPos)
+			this.scaleToTraining(relativeVerticalPos)
 		]
 		return data
 

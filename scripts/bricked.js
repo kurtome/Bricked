@@ -242,7 +242,7 @@ PaddleAi = (function() {
     } else {
       velocityRight = ballLinearVelocity.x;
     }
-    data = [this.scaleToTraining(ballPosition.x), this.scaleToTraining(paddlePosition.x), this.scaleToTraining(distanceLeft), this.scaleToTraining(distanceRight), this.scaleToTraining(velocityLeft), this.scaleToTraining(velocityRight)];
+    data = [this.scaleToTraining(ballPosition.x), this.scaleToTraining(paddlePosition.x), this.scaleToTraining(distanceLeft), this.scaleToTraining(distanceRight), this.scaleToTraining(velocityLeft), this.scaleToTraining(velocityRight), this.scaleToTraining(relativeVerticalPos)];
     return data;
   };
 
