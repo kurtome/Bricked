@@ -9,7 +9,7 @@ importScripts('../lib/brain/brain-0.3.5.js');
 createNn = function() {
   var net, options;
   options = {
-    hidden: [16, 16],
+    hidden: [16, 16, 16, 16],
     growthRate: 1.0,
     learningRate: 0.3
   };
