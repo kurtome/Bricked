@@ -150,11 +150,6 @@ PaddleAi = (function() {
 
   PaddleAi.prototype.beginContact = function(contact) {
     if (bricked.isBodyInContact(contact, bricked.ball)) {
-      if (bricked.isBodyInContact(contact, bricked.leftWall) || bricked.isBodyInContact(contact, bricked.rightWall)) {
-        this.prevRecentData = this.recentData;
-      } else {
-        this.prevRecentData = [];
-      }
       return this.recentData = [];
     }
   };

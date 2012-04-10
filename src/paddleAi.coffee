@@ -43,11 +43,11 @@ class PaddleAi
 			# Only hold on to prev recent data if
 			# this is a side wall (the intention of it is to train off of
 			# data including up to one side wall bounce)
-			if (bricked.isBodyInContact(contact, bricked.leftWall) or
-			bricked.isBodyInContact(contact, bricked.rightWall))
-				@prevRecentData = @recentData
-			else
-				@prevRecentData = []
+			#if (bricked.isBodyInContact(contact, bricked.leftWall) or
+			#bricked.isBodyInContact(contact, bricked.rightWall))
+			#	@prevRecentData = @recentData
+			#else
+			#	@prevRecentData = []
 
 			# Now clear prev
 			@recentData = []
