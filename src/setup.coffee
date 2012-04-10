@@ -65,3 +65,13 @@ bricked.applyYForce = (body, yForce) ->
 	centerPoint = body.GetPosition()
 	force = new b2Vec2(0, yForce)
 	body.ApplyForce(force, centerPoint)
+
+bricked.isBodyInContact = (contact, body) ->
+	bodyA = contact.GetFixtureA().GetBody()
+	bodyB = contact.GetFixtureB().GetBody()
+
+	if (bodyA is body or bodyB is body)
+		return true
+	else
+		return false
+

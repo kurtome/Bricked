@@ -66,6 +66,16 @@ bricked.applyYForce = (body, yForce) ->
 	force = new b2Vec2(0, yForce)
 	body.ApplyForce(force, centerPoint)
 
+bricked.isBodyInContact = (contact, body) ->
+	bodyA = contact.GetFixtureA().GetBody()
+	bodyB = contact.GetFixtureB().GetBody()
+
+	if (bodyA is body or bodyB is body)
+		return true
+	else
+		return false
+
+
 
 bricked.TRAINING_DATA_SIZE = 1000
 bricked.PADDLE_X_FORCE = 10
@@ -96,6 +106,7 @@ class PaddleAi
 
 		@trainingData = []
 		@recentData = []
+		@prevRecentData = []
 		@isWaitingForWorker = false
 		@isTrained = false
 		@wasRecentDataTrained = false
@@ -104,20 +115,21 @@ class PaddleAi
 	# Contact event handler for the physics world.
 	###
 	beginContact: (contact) ->
-		bodyA = contact.GetFixtureA().GetBody()
-		bodyB = contact.GetFixtureB().GetBody()
-
-		if (bodyA == bricked.ball or bodyB == bricked.ball)
+		if (bricked.isBodyInContact(contact, bricked.ball))
 			# Clear out the recent data when the ball hits something
 			# so we don't train for superflous stuff
-			@recentData = []
-
-			if (bodyA == @paddle or bodyB == @paddle)
-				#this.trainRecentData()
+			#
+			# Only hold on to prev recent data if
+			# this is a side wall (the intention of it is to train off of
+			# data including up to one side wall bounce)
+			if (bricked.isBodyInContact(contact, bricked.leftWall) or
+			bricked.isBodyInContact(contact, bricked.rightWall))
+				@prevRecentData = @recentData
 			else
-				
-				#if (Math.random() > .5)
-				#@recentData = []
+				@prevRecentData = []
+
+			# Now clear prev
+			@recentData = []
 
 	###
 	# Callback for the onmessage of the trainingWorker
@@ -252,9 +264,9 @@ class PaddleAi
 		if (@isWaitingForWorker or @wasRecentDataTrained)
 			return
 
-		# Create training data by using all the recent data
-		# and assigning an correct output action for it
-		#@trainingData = []
+		# Combine in prev recent data if there is any
+		if (@prevRecentData.length > 0)
+			@recentData = @recentData.concat(@prevRecentData)
 		
 		@wasRecentDataTrained = true
 
@@ -347,6 +359,7 @@ bricked.createWalls = ->
 
 	# Create walls
 	fixDef.shape = new b2PolygonShape
+
 	# Left wall
 	bodyDef.position.x = 0
 	bodyDef.position.y = bricked.scaleToPhys(bricked.HEIGHT / 2)
@@ -381,6 +394,26 @@ bricked.createWalls = ->
 	bricked.bottomWall = bricked.world.CreateBody(bodyDef)
 	bricked.bottomWall.CreateFixture(fixDef)
 
+	# Create two walls in the top corners to make the ball bounce off at an angle
+	# (really tired of ball getting stuck)
+	# Top Left
+	bodyDef.position.x = bricked.scaleToPhys(1)
+	bodyDef.position.y = bricked.scaleToPhys(1)
+	bodyDef.angle = Math.PI / 4
+	topLeftWidth = bricked.scaleToPhys(15)
+	topLeftHeight = bricked.scaleToPhys(15)
+	fixDef.shape.SetAsBox(topLeftWidth, topLeftHeight)
+	bricked.world.CreateBody(bodyDef).CreateFixture(fixDef)
+	# Top right
+	bodyDef.position.x = bricked.scaleToPhys(bricked.WIDTH - 1)
+	bodyDef.position.y = bricked.scaleToPhys(1)
+	bodyDef.angle = Math.PI / 4
+	topRightWidth = bricked.scaleToPhys(15)
+	topRightHeight = bricked.scaleToPhys(15)
+	fixDef.shape.SetAsBox(topRightWidth, topRightHeight)
+	bricked.world.CreateBody(bodyDef).CreateFixture(fixDef)
+	
+
 ###
  Creates a ball
 	Returns: the ball
@@ -394,7 +427,7 @@ bricked.createBall = ->
 	fixDef = new b2FixtureDef
 	fixDef.density = 1.0
 	fixDef.friction = 0
-	fixDef.restitution = 1.01
+	fixDef.restitution = 1.02
 	radius = bricked.scaleToPhys(bricked.BALL_RADIUS)
 	fixDef.shape = new b2CircleShape(radius)
 
@@ -464,15 +497,12 @@ bricked.createPaddle = ->
 bricked.beginContact = (contact) ->
 	bricked.paddleAi.beginContact(contact)
 
-	bodyA = contact.GetFixtureA().GetBody()
-	bodyB = contact.GetFixtureB().GetBody()
-
-	if (bodyA == bricked.ball or bodyB == bricked.ball)
-		if (bodyA == bricked.paddle or bodyB == bricked.paddle)
+	if (bricked.isBodyInContact(contact, bricked.ball))
+		if (bricked.isBodyInContact(contact, bricked.paddle))
 			bricked.ballStartTime = bricked.getCurrentTime()
 
 		# See if the ball hit the bottom wall, and thus is dead
-		if (bodyA == bricked.bottomWall or bodyB == bricked.bottomWall)
+		if (bricked.isBodyInContact(contact, bricked.bottomWall))
 			bricked.didBallDie = true
 
 ###
@@ -553,12 +583,12 @@ bricked.update = ->
 		bricked.killBall()
 
 	# Make sure the ball isn't stuck
-	if (Math.abs(bricked.ball.GetLinearVelocity().x) < 0.2)
+	#if (Math.abs(bricked.ball.GetLinearVelocity().x) < 0.2)
 		# Give it a slight nudge
-		bricked.applyXForce bricked.ball, 1
-	else if (Math.abs(bricked.ball.GetLinearVelocity().y) < 0.2)
+		#bricked.applyXForce bricked.ball, 1
+	#else if (Math.abs(bricked.ball.GetLinearVelocity().y) < 0.2)
 		# Give it a slight nudge
-		bricked.applyYForce bricked.ball, 1
+		#bricked.applyYForce bricked.ball, 1
 
 	# Update paddle
 	bricked.paddleAi.update()

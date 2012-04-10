@@ -27,6 +27,7 @@ class PaddleAi
 
 		@trainingData = []
 		@recentData = []
+		@prevRecentData = []
 		@isWaitingForWorker = false
 		@isTrained = false
 		@wasRecentDataTrained = false
@@ -35,20 +36,21 @@ class PaddleAi
 	# Contact event handler for the physics world.
 	###
 	beginContact: (contact) ->
-		bodyA = contact.GetFixtureA().GetBody()
-		bodyB = contact.GetFixtureB().GetBody()
-
-		if (bodyA == bricked.ball or bodyB == bricked.ball)
+		if (bricked.isBodyInContact(contact, bricked.ball))
 			# Clear out the recent data when the ball hits something
 			# so we don't train for superflous stuff
-			@recentData = []
-
-			if (bodyA == @paddle or bodyB == @paddle)
-				#this.trainRecentData()
+			#
+			# Only hold on to prev recent data if
+			# this is a side wall (the intention of it is to train off of
+			# data including up to one side wall bounce)
+			if (bricked.isBodyInContact(contact, bricked.leftWall) or
+			bricked.isBodyInContact(contact, bricked.rightWall))
+				@prevRecentData = @recentData
 			else
-				
-				#if (Math.random() > .5)
-				#@recentData = []
+				@prevRecentData = []
+
+			# Now clear prev
+			@recentData = []
 
 	###
 	# Callback for the onmessage of the trainingWorker
@@ -183,9 +185,9 @@ class PaddleAi
 		if (@isWaitingForWorker or @wasRecentDataTrained)
 			return
 
-		# Create training data by using all the recent data
-		# and assigning an correct output action for it
-		#@trainingData = []
+		# Combine in prev recent data if there is any
+		if (@prevRecentData.length > 0)
+			@recentData = @recentData.concat(@prevRecentData)
 		
 		@wasRecentDataTrained = true
 

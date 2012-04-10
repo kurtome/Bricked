@@ -89,6 +89,17 @@ bricked.applyYForce = function(body, yForce) {
   return body.ApplyForce(force, centerPoint);
 };
 
+bricked.isBodyInContact = function(contact, body) {
+  var bodyA, bodyB;
+  bodyA = contact.GetFixtureA().GetBody();
+  bodyB = contact.GetFixtureB().GetBody();
+  if (bodyA === body || bodyB === body) {
+    return true;
+  } else {
+    return false;
+  }
+};
+
 bricked.TRAINING_DATA_SIZE = 1000;
 
 bricked.PADDLE_X_FORCE = 10;
@@ -127,6 +138,7 @@ PaddleAi = (function() {
     this.trainedLearner = new brain.NeuralNetwork();
     this.trainingData = [];
     this.recentData = [];
+    this.prevRecentData = [];
     this.isWaitingForWorker = false;
     this.isTrained = false;
     this.wasRecentDataTrained = false;
@@ -137,14 +149,13 @@ PaddleAi = (function() {
   */
 
   PaddleAi.prototype.beginContact = function(contact) {
-    var bodyA, bodyB;
-    bodyA = contact.GetFixtureA().GetBody();
-    bodyB = contact.GetFixtureB().GetBody();
-    if (bodyA === bricked.ball || bodyB === bricked.ball) {
-      this.recentData = [];
-      if (bodyA === this.paddle || bodyB === this.paddle) {} else {
-
+    if (bricked.isBodyInContact(contact, bricked.ball)) {
+      if (bricked.isBodyInContact(contact, bricked.leftWall) || bricked.isBodyInContact(contact, bricked.rightWall)) {
+        this.prevRecentData = this.recentData;
+      } else {
+        this.prevRecentData = [];
       }
+      return this.recentData = [];
     }
   };
 
@@ -281,6 +292,9 @@ PaddleAi = (function() {
   PaddleAi.prototype.trainRecentData = function() {
     var addedCount, currentBallX, dataBallX, dataPoint, leftVal, rightVal, stayMargin, stayVal, trainingDataPoint;
     if (this.isWaitingForWorker || this.wasRecentDataTrained) return;
+    if (this.prevRecentData.length > 0) {
+      this.recentData = this.recentData.concat(this.prevRecentData);
+    }
     this.wasRecentDataTrained = true;
     addedCount = 0;
     while (this.recentData.length > 0) {
@@ -352,7 +366,7 @@ window.requestAnimFrame = (function() {
 */
 
 bricked.createWalls = function() {
-  var b2Body, b2BodyDef, b2FixtureDef, b2PolygonShape, bodyDef, bottomHeight, bottomWidth, fixDef, leftHeight, leftWidth, rightHeight, rightWidth, topHeight, topWidth;
+  var b2Body, b2BodyDef, b2FixtureDef, b2PolygonShape, bodyDef, bottomHeight, bottomWidth, fixDef, leftHeight, leftWidth, rightHeight, rightWidth, topHeight, topLeftHeight, topLeftWidth, topRightHeight, topRightWidth, topWidth;
   b2BodyDef = Box2D.Dynamics.b2BodyDef;
   b2Body = Box2D.Dynamics.b2Body;
   b2FixtureDef = Box2D.Dynamics.b2FixtureDef;
@@ -389,7 +403,21 @@ bricked.createWalls = function() {
   bottomHeight = topHeight;
   fixDef.shape.SetAsBox(bottomWidth, topHeight);
   bricked.bottomWall = bricked.world.CreateBody(bodyDef);
-  return bricked.bottomWall.CreateFixture(fixDef);
+  bricked.bottomWall.CreateFixture(fixDef);
+  bodyDef.position.x = bricked.scaleToPhys(1);
+  bodyDef.position.y = bricked.scaleToPhys(1);
+  bodyDef.angle = Math.PI / 4;
+  topLeftWidth = bricked.scaleToPhys(15);
+  topLeftHeight = bricked.scaleToPhys(15);
+  fixDef.shape.SetAsBox(topLeftWidth, topLeftHeight);
+  bricked.world.CreateBody(bodyDef).CreateFixture(fixDef);
+  bodyDef.position.x = bricked.scaleToPhys(bricked.WIDTH - 1);
+  bodyDef.position.y = bricked.scaleToPhys(1);
+  bodyDef.angle = Math.PI / 4;
+  topRightWidth = bricked.scaleToPhys(15);
+  topRightHeight = bricked.scaleToPhys(15);
+  fixDef.shape.SetAsBox(topRightWidth, topRightHeight);
+  return bricked.world.CreateBody(bodyDef).CreateFixture(fixDef);
 };
 
 /*
@@ -406,7 +434,7 @@ bricked.createBall = function() {
   fixDef = new b2FixtureDef;
   fixDef.density = 1.0;
   fixDef.friction = 0;
-  fixDef.restitution = 1.01;
+  fixDef.restitution = 1.02;
   radius = bricked.scaleToPhys(bricked.BALL_RADIUS);
   fixDef.shape = new b2CircleShape(radius);
   bodyDef = new b2BodyDef;
@@ -457,15 +485,12 @@ bricked.createPaddle = function() {
 */
 
 bricked.beginContact = function(contact) {
-  var bodyA, bodyB;
   bricked.paddleAi.beginContact(contact);
-  bodyA = contact.GetFixtureA().GetBody();
-  bodyB = contact.GetFixtureB().GetBody();
-  if (bodyA === bricked.ball || bodyB === bricked.ball) {
-    if (bodyA === bricked.paddle || bodyB === bricked.paddle) {
+  if (bricked.isBodyInContact(contact, bricked.ball)) {
+    if (bricked.isBodyInContact(contact, bricked.paddle)) {
       bricked.ballStartTime = bricked.getCurrentTime();
     }
-    if (bodyA === bricked.bottomWall || bodyB === bricked.bottomWall) {
+    if (bricked.isBodyInContact(contact, bricked.bottomWall)) {
       return bricked.didBallDie = true;
     }
   }
@@ -539,11 +564,6 @@ bricked.update = function() {
     bricked.killBall();
   } else if ((bricked.getCurrentTime() - bricked.ballStartTime) > (60 * 1000)) {
     bricked.killBall();
-  }
-  if (Math.abs(bricked.ball.GetLinearVelocity().x) < 0.2) {
-    bricked.applyXForce(bricked.ball, 1);
-  } else if (Math.abs(bricked.ball.GetLinearVelocity().y) < 0.2) {
-    bricked.applyYForce(bricked.ball, 1);
   }
   bricked.paddleAi.update();
   bricked.stats.update();
