@@ -28,6 +28,7 @@
     h3 { text-align: center; color: #6b432e; }
     a { color: #6b432e; }
     .description { font-size: 1.2em; margin-bottom: 30px; margin-top: 30px; font-style: italic;}
+    .notes { font-size: 1.0em; margin-bottom: 30px; margin-top: 10px;}
     .download { float: right; }
     pre { background: #000; color: #fff; padding: 15px;}
     hr { border: 0; width: 80%; border-bottom: 1px solid #aaa}
@@ -53,11 +54,14 @@
 		<!-- JS that does all the work for the game. -->
 		<script type="text/javascript" src="./scripts/bricked.js"></script>
 
-    <div class="description">
+    <div class="notes">
     		<p>
-    		(Note this is only tested on Chrome browser. 
-    		Also, this can take around 10+ minutes of running to display anything even close to smart play.)
+    		Note this is only tested on Chrome browser. 
+    		Chrome pauses javascript when on another tab, so open this in its own window.
+    		Also, this can take around 10+ minutes of running to display anything even close to smart play.
     		</p>
+    </div>
+    <div class="description">
 		<p>
 		This is a work in progress proof-of-concept "game" which will attempt to have a simple AI agent learn and become proficient in game from scratch. All code is written in CoffeeScript.
 		</p>
@@ -69,7 +73,6 @@
 		The classification function returned from the neural net trainer is used whenever training completes, and then the next batch of training data can be sent to the trainer.
 		The neural net trains on a separate Web Worker thread allow training to happen in real time.
 		</p>
-
     </div>
 
 
